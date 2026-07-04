@@ -61,7 +61,7 @@ export function renderSeal(state) {
       <text x="${CX}" y="${CY - 44}" text-anchor="middle" font-size="10.5" letter-spacing="3" fill="#C8A96E">TOTAL HOLDINGS</text>
       <text x="${CX}" y="${CY + 4}" text-anchor="middle" font-family="Fraunces,serif" font-weight="300" font-size="${size}" fill="#F2EEE4">${usd}</text>
       <text x="${CX}" y="${CY + 32}" text-anchor="middle" font-size="13.5" fill="#C8A96E">≈ ${M.fmtSAR(mv, state.fxRate)}</text>
-      <text x="${CX}" y="${CY + 58}" text-anchor="middle" font-size="12" font-weight="500" fill="${plColor}">${plSign}${M.fmtUSD(Math.abs(pl)).slice(pl < 0 ? 1 : 0)} · ${plSign}${Math.abs(plPct).toFixed(2)}% all time</text>`;
+      <text x="${CX}" y="${CY + 58}" text-anchor="middle" font-size="12" font-weight="500" fill="${plColor}">${plSign}${M.fmtUSD(Math.abs(pl))} · ${plSign}${Math.abs(plPct).toFixed(2)}% all time</text>`;
   }
 
   el("seal").innerHTML = `
@@ -90,7 +90,7 @@ export function renderStats(state) {
       <div class="v">${M.fmtUSD(contributed)}</div>
       <div class="sub gold">≈ ${M.fmtSAR(contributed, state.fxRate)}</div></div>
     <div class="stat"><div class="k">Profit / loss</div>
-      <div class="v ${pl >= 0 ? "gain" : "loss"}">${pl >= 0 ? "+" : "−"}${M.fmtUSD(Math.abs(pl)).slice(0)}</div>
+      <div class="v ${pl >= 0 ? "gain" : "loss"}">${pl >= 0 ? "+" : "−"}${M.fmtUSD(Math.abs(pl))}</div>
       <div class="sub">${pl >= 0 ? "+" : "−"}${Math.abs(plPct).toFixed(2)}% on capital</div></div>
     <div class="stat"><div class="k">Zakat due (${state.zakatPct}%)</div>
       <div class="v gold">${M.fmtUSD(zakat)}</div>
