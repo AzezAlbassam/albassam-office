@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Model tests — Albassam Office</title>
+<style>body{font:14px/1.6 monospace;background:#0A0C0F;color:#EAE6DD;padding:24px}
+.pass{color:#58A47C}.fail{color:#C25E4C}h1{font-size:16px}</style>
+</head>
+<body>
+<h1>Unitized fund model — test run</h1>
+<div id="out"></div>
+<script type="module">
+import * as M from '../js/model.js';
+
+const out = document.getElementById('out');
+let passed = 0, failed = 0;
+function t(name, fn) {
+  try { fn(); passed++; out.insertAdjacentHTML('beforeend', `<div class="pass">PASS ${name}</div>`); }
+  catch (e) { failed++; out.insertAdjacentHTML('beforeend', `<div class="fail">FAIL ${name} — ${e.message}</div>`); console.error(name, e); }
+}
+function eq(a, b, label) { if (a !== b) throw new Error(`${label || ''} expected ${b}, got ${a}`); }
+function close(a, b, tol, label) { if (Math.abs(a - b) > tol) throw new Error(`${label || ''} expected ~${b}±${tol}, got ${a}`); }
+function throws(fn, contains) {
+  try { fn(); } catch (e) {
+    if (contains && !e.message.includes(contains)) throw new Error(`threw but message "${e.message}" lacks "${contains}"`);
+    return e;
+  }
+  throw new Error('expected to throw');
+}
+
+// Founding: Abdulaziz $153,656.60 / Mom $115,128.80 / Turki $17,614.60 ≈ prototype %s
+const F = M.found([
+  { name: 'Abdulaziz', valueCents: 15365660, contributedCents: 14499100 },
+  { name: 'Mom',       valueCents: 11512880, contributedCents: 10848200 },
+  { name: 'Turki',     valueCents: 1761460,  contributedCents: 1639600 },
+]);
+let S = F.state;
+
+t('founding: market value = sum of stakes', () => eq(S.marketValueCents, 28640000));
+t('founding: opening NAV is $1.00/unit', () => close(M.navCentsPerUnit(S), 100, 1e-9));
+t('founding: percentages sum to exactly 100.00%', () => {
+  const p = M.displayPercentsBp2(S);
+  eq(p.reduce((a, b) => a + b, 0), 10000);
+});
+t('founding: member values reconcile to total exactly', () => {
+  eq(M.memberValuesCents(S).reduce((a, b) => a + b, 0), S.marketValueCents);
+});
+
+// Deposit
+t('deposit: A +$25,000 raises A%, lowers others, still sums 100.00%', () => {
+  const before = M.displayPercentsBp2(S);
+  const r = M.deposit(S, S.members[0].id, 2500000);
+  const after = M.displayPercentsBp2(r.state);
+  if (!(after[0] > before[0])) throw new Error('A% did not rise');
+  if (!(after[1] < before[1] && after[2] < before[2])) throw new Error('others did not fall');
+  eq(after.reduce((a, b) => a + b, 0), 10000, 'sum');
+  eq(r.state.marketValueCents, S.marketValueCents + 2500000, 'mv');
+  eq(r.state.members[0].netContributedCents, S.members[0].netContributedCents + 2500000, 'contrib');
+  S = r.state;
+});
+t('deposit: units issued at current NAV keep others’ value unchanged', () => {
+  const valsBefore = M.memberValuesCents(S);
+  const r = M.deposit(S, S.members[1].id, 1000000);
+  const valsAfter = M.memberValuesCents(r.state);
+  close(valsAfter[0], valsBefore[0], 2, 'A value');
+  close(valsAfter[2], valsBefore[2], 2, 'T value');
+  S = r.state;
+});
+
+// Withdrawal
+t('withdraw: over-balance rejected with max shown', () => {
+  const tId = S.members[2].id;
+  const max = M.maxWithdrawableCents(S, tId);
+  const e = throws(() => M.withdraw(S, tId, max + 1), 'Maximum withdrawable');
+  eq(e.data.maxWithdrawableCents, max, 'max in error data');
+});
+t('withdraw: normal withdrawal lowers member % and mv', () => {
+  const before = M.displayPercentsBp2(S);
+  const r = M.withdraw(S, S.members[2].id, 500000);
+  const after = M.displayPercentsBp2(r.state);
+  if (!(after[2] < before[2])) throw new Error('T% did not fall');
+  eq(after.reduce((a, b) => a + b, 0), 10000, 'sum');
+  eq(r.state.marketValueCents, S.marketValueCents - 500000, 'mv');
+  S = r.state;
+});
+t('withdraw: exact max redeems every unit (no dust)', () => {
+  const tId = S.members[2].id;
+  const max = M.maxWithdrawableCents(S, tId);
+  const r = M.withdraw(S, tId, max);
+  eq(r.state.members[2].unitsMicro, 0, 'units');
+  eq(M.memberValueCents(r.state, tId), 0, 'value');
+});
+
+// Add member
+t('add member: opening deposit rescales everyone, sums 100.00%', () => {
+  const r = M.addMember(S, 'Sara', 5000000);
+  const p = M.displayPercentsBp2(r.state);
+  eq(p.reduce((a, b) => a + b, 0), 10000, 'sum');
+  const sara = r.state.members[3];
+  close(M.memberValueCents(r.state, sara.id), 5000000, 2, 'Sara value ≈ deposit');
+  S = r.state;
+});
+t('add member: duplicate name rejected', () => { throws(() => M.addMember(S, 'sara', 100), 'already exists'); });
+
+// Revaluation
+t('revalue: values/P&L move, units unchanged', () => {
+  const unitsBefore = S.members.map((m) => m.unitsMicro);
+  const r = M.revalue(S, 40000000);
+  r.state.members.forEach((m, i) => eq(m.unitsMicro, unitsBefore[i], 'units ' + m.name));
+  eq(r.state.marketValueCents, 40000000, 'mv');
+  eq(M.memberValuesCents(r.state).reduce((a, b) => a + b, 0), 40000000, 'reconcile');
+  const pl = 40000000 - M.totalContributedCents(r.state);
+  eq(r.state.marketValueCents - M.totalContributedCents(r.state), pl);
+  S = r.state;
+});
+
+// Delete member
+t('delete nonzero balance without choice → blocked', () => {
+  throws(() => M.removeMemberZero(S, S.members[0].id), 'still holds');
+});
+t('delete via redeem: recorded amount = balance; totals reconcile', () => {
+  const aId = S.members[0].id;
+  const bal = M.memberValueCents(S, aId);
+  const r = M.removeMemberRedeem(S, aId);
+  eq(r.entry.amountCents, bal, 'entry amount');
+  eq(r.state.members.length, S.members.length - 1, 'count');
+  eq(r.state.marketValueCents, S.marketValueCents - bal, 'mv');
+  eq(M.displayPercentsBp2(r.state).reduce((a, b) => a + b, 0), 10000, 'sum');
+});
+t('delete via reassign: mv and total units preserved', () => {
+  const aId = S.members[0].id;
+  const r = M.removeMemberReassign(S, aId);
+  eq(r.state.marketValueCents, S.marketValueCents, 'mv unchanged');
+  eq(r.state.totalUnitsMicro, S.totalUnitsMicro, 'units conserved');
+  eq(M.displayPercentsBp2(r.state).reduce((a, b) => a + b, 0), 10000, 'sum');
+});
+
+// Zero-balance delete after full withdrawal
+t('delete zero-balance member directly', () => {
+  const tId = S.members[2].id;
+  const w = M.withdraw(S, tId, M.maxWithdrawableCents(S, tId));
+  const r = M.removeMemberZero(w.state, tId);
+  eq(r.state.members.length, S.members.length - 1);
+});
+
+// Settings, parsing, zakat
+t('settings: fx + zakat update with note', () => {
+  const r = M.updateSettings(S, { fxRate: 3.76, zakatPct: 2.6 });
+  eq(r.state.fxRate, 3.76); eq(r.state.zakatPct, 2.6);
+  if (!r.entry.note.includes('3.75') && !r.entry.note.includes('3.76')) throw new Error('note missing');
+});
+t('parseUSDToCents handles commas/decimals; rejects junk', () => {
+  eq(M.parseUSDToCents('25,000.5'), 2500050);
+  eq(M.parseUSDToCents('$1,000'), 100000);
+  throws(() => M.parseUSDToCents('12a'));
+  throws(() => M.parseUSDToCents(''));
+});
+t('zakat 2.5% of $286,400 = $7,160.00', () => eq(M.zakatCents(28640000, 2.5), 716000));
+
+// Precision stress: many small ops keep reconciliation exact
+t('stress: 200 mixed ops — values always reconcile, % always 100.00%', () => {
+  let st = M.found([
+    { name: 'A', valueCents: 10000000, contributedCents: 10000000 },
+    { name: 'B', valueCents: 7000000, contributedCents: 7000000 },
+    { name: 'C', valueCents: 300000, contributedCents: 300000 },
+  ]).state;
+  let seed = 42;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  for (let i = 0; i < 200; i++) {
+    const m = st.members[Math.floor(rnd() * st.members.length)];
+    const op = rnd();
+    try {
+      if (op < 0.45) st = M.deposit(st, m.id, 1 + Math.floor(rnd() * 500000)).state;
+      else if (op < 0.85) st = M.withdraw(st, m.id, 1 + Math.floor(rnd() * 300000)).state;
+      else st = M.revalue(st, Math.max(1, st.marketValueCents + Math.floor((rnd() - 0.5) * 2000000))).state;
+    } catch (e) { if (!(e instanceof M.ModelError)) throw e; }
+    eq(M.memberValuesCents(st).reduce((a, b) => a + b, 0), st.marketValueCents, 'reconcile @' + i);
+    eq(M.displayPercentsBp2(st).reduce((a, b) => a + b, 0), 10000, 'pct @' + i);
+    if (!Number.isInteger(st.totalUnitsMicro) || st.totalUnitsMicro < 0) throw new Error('units corrupt @' + i);
+    eq(st.members.reduce((a, x) => a + x.unitsMicro, 0), st.totalUnitsMicro, 'unit ledger @' + i);
+  }
+});
+
+out.insertAdjacentHTML('beforeend', `<h1>${passed} passed, ${failed} failed</h1>`);
+document.title = failed ? `✗ ${failed} FAILED` : `✓ all ${passed} passed`;
+</script>
+</body>
+</html>
