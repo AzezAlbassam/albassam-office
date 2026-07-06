@@ -1,0 +1,170 @@
+{
+  "name": "Albassam — Private Family Office",
+  "tagline": "ALBASSAM",
+  "description": "A private family office ledger — obsidian ground, brushed-gold seal, tabular-numeral portfolio history for members of the Albassam family.",
+  "sourceUrl": "https://azezalbassam.github.io/albassam-office",
+  "logo": {
+    "primary": "logos/header.svg",
+    "alternates": [
+      "logos/header-inline.svg",
+      "logos/favicon.svg"
+    ],
+    "notes": "Measured, not guessed: the site ships one mark in two weights. logos/header.svg is the full masthead lockup (two rotated 18×18 squares + a 2.2r center dot, 1px #C8A96E stroke) taken verbatim from the header <svg>. logos/favicon.svg is the simplified two-square favicon (no center dot) decoded from the inline data-URI <link rel=\"icon\">. There is no raster <img> logo, no apple-touch-icon, and no og:image/twitter:image on the page (it ships meta name=\"robots\" content=\"noindex\" — it isn't meant to be socially shared), so these two SVGs are the complete real logo set."
+  },
+  "colors": [
+    {
+      "role": "background",
+      "hex": "#0a0c0f",
+      "oklch": "oklch(15.3% 0.007 258.4)",
+      "name": "Obsidian",
+      "usage": "page canvas — near-black ground (measured from --obsidian, used on <body> and input fields)"
+    },
+    {
+      "role": "surface",
+      "hex": "#14171c",
+      "oklch": "oklch(20.4% 0.011 260.7)",
+      "name": "Panel",
+      "usage": "cards, stat tiles, member panels — raised surface over obsidian (measured from --panel, paired with a --panel-2 #191D23 for modal surfaces one step brighter)"
+    },
+    {
+      "role": "foreground",
+      "hex": "#eae6dd",
+      "oklch": "oklch(92.6% 0.013 86.8)",
+      "name": "Ivory",
+      "usage": "primary body text and ledger figures (measured from --ivory; headline/emphasis text steps up to --ivory-bright #F2EEE4)"
+    },
+    {
+      "role": "muted",
+      "hex": "#9c968a",
+      "oklch": "oklch(67.5% 0.019 84.6)",
+      "name": "Stone",
+      "usage": "secondary text — dt labels, captions, footnote copy (measured from --stone)"
+    },
+    {
+      "role": "border",
+      "hex": "#23272e",
+      "oklch": "oklch(27.2% 0.014 261.7)",
+      "name": "Line",
+      "usage": "hairlines, dividers, input borders (measured from --line; card edges use a softer --line-soft #1C2026 one step down)"
+    },
+    {
+      "role": "accent",
+      "hex": "#c8a96e",
+      "oklch": "oklch(74.9% 0.085 82.8)",
+      "name": "Gold",
+      "usage": "the brand's signal color — wordmark, seal, section eyebrows, primary buttons, positive brand emphasis (56 occurrences in the stylesheet, by far the most-used literal)"
+    },
+    {
+      "role": "accent-secondary",
+      "hex": "#c25e4c",
+      "oklch": "oklch(59.9% 0.132 31.7)",
+      "name": "Terracotta / Loss",
+      "usage": "negative figures, destructive actions, danger states only (measured from --loss; reserved exclusively for loss/decrease semantics, never decorative)"
+    }
+  ],
+  "typography": {
+    "display": {
+      "family": "Marcellus",
+      "fallbacks": [
+        "Times New Roman",
+        "serif"
+      ],
+      "weights": [
+        400
+      ],
+      "googleFontsUrl": "https://fonts.googleapis.com/css2?family=Marcellus&display=swap"
+    },
+    "body": {
+      "family": "Inter",
+      "fallbacks": [
+        "-apple-system",
+        "Segoe UI",
+        "system-ui",
+        "sans-serif"
+      ],
+      "weights": [
+        400,
+        500,
+        600
+      ],
+      "googleFontsUrl": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+    },
+    "mono": {
+      "family": "Fraunces",
+      "fallbacks": [
+        "Georgia",
+        "serif"
+      ],
+      "weights": [
+        300,
+        400
+      ],
+      "googleFontsUrl": "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400&display=swap"
+    }
+  },
+  "voice": {
+    "adjectives": [
+      "private",
+      "custodial",
+      "understated",
+      "precise",
+      "ceremonial"
+    ],
+    "tone": "Quiet-luxury and custodial rather than corporate-SaaS: the copy reads like the ledger of an old family office, not a fintech dashboard. Short, formal nouns (Registry, Ledger, Members, Portfolio history) stand in for feature names. No exclamation points, no growth-hacking verbs, no casual contractions. The Arabic subtitle beneath the English wordmark (مكتب عائلة البسّام) signals heritage and is treated as co-equal identity, not a translation afterthought.",
+    "messagingPillars": [
+      "ALBASSAM",
+      "Members ·",
+      "Portfolio history",
+      "Ledger"
+    ],
+    "vocabulary": {
+      "use": [
+        "registry",
+        "ledger",
+        "members",
+        "stewarded",
+        "family office",
+        "portfolio history"
+      ],
+      "avoid": [
+        "dashboard",
+        "users",
+        "clients",
+        "app",
+        "exclamation points",
+        "growth/marketing verbs (\"unlock\", \"supercharge\")"
+      ]
+    }
+  },
+  "imagery": {
+    "style": "No photography anywhere on the site — the entire visual identity is a single line-art heraldic seal (concentric rotated squares + center dot) rendered in 1px gold strokes on the obsidian ground.",
+    "subjects": [
+      "the geometric seal/compass mark",
+      "tabular financial figures set in Fraunces"
+    ],
+    "treatment": "Thin 1px linework only, generous negative space, perfect bilateral symmetry, one slow 240s ambient rotation on the seal (disabled under prefers-reduced-motion). No gradients, no texture, no iconography per heading.",
+    "avoid": [
+      "photography",
+      "human figures/faces",
+      "stock illustration",
+      "emoji or icon packs",
+      "gradients",
+      "drop shadows"
+    ],
+    "samples": []
+  },
+  "layout": {
+    "radius": "14px cards / 9px controls / 999px pills",
+    "borderWeight": "1px",
+    "spacing": "4px base unit; 14–22px component padding; 42–70px section rhythm",
+    "postureRules": [
+      "Centered, symmetrical masthead with extreme letter-spacing (.3em on the wordmark, .32em on its descriptor) — ceremonial, not a left-aligned corporate nav.",
+      "Uppercase, heavily tracked (.14em–.28em) micro-labels for every section heading and status pill; hairline rules flank each h2 instead of an icon.",
+      "Two-tier radius system: 14px for content cards (stat/member/panel), a tighter 9px for interactive controls (buttons/inputs), 999px pills for status chips — never one global radius.",
+      "Two distinct numeral registers: tabular Inter for UI copy and dates, Fraunces serif numerals reserved for the figures that matter (stat values, percentages, ledger amounts) — a deliberate typographic shift that marks financial significance.",
+      "Semantic color is rationed: gold marks brand/primary/positive emphasis, emerald #58A47C is reserved solely for gains, terracotta #C25E4C solely for losses/danger — none of the three is ever used decoratively outside its meaning.",
+      "Motion is a single restrained flourish: one 240s slow-rotating seal, nothing else animates, and it is fully disabled under prefers-reduced-motion.",
+      "Bilingual identity line (Arabic beneath the English wordmark) is structural, not incidental — reserve a line for it in any masthead treatment."
+    ]
+  }
+}
