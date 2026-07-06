@@ -1,0 +1,1 @@
+All UI work must follow the Albassam design system defined in BRAND.md, DESIGN.md, and brand.json in the repo root (obsidian ground, gold #c8a96e accents, ivory text, terracotta for losses). Read them before any visual changes.
