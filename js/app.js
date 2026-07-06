@@ -50,7 +50,7 @@ function renderAll() {
   R.renderStats(state);
   R.renderMembers(state, editUI);
   R.renderHistory(snap ? snap.history : [], state ? state.fxRate : 3.75, editUI);
-  R.renderLedger(snap ? snap.ledger : []);
+  R.renderLedger(snap ? snap.ledger : [], editUI);
   R.populateMemberSelects(state);
 
   if (editUI && state) {
@@ -179,6 +179,8 @@ function wireEditActions() {
     if (manage) manageMember(manage.dataset.manage);
     const histDel = e.target.closest("[data-hist-del]");
     if (histDel) deleteHistoryPoint(histDel.dataset.histDel);
+    const ledgerDel = e.target.closest("[data-ledger-del]");
+    if (ledgerDel) deleteLedgerEntry(ledgerDel.dataset.ledgerDel);
   });
 
   $("bk-export").addEventListener("click", exportBackup);
@@ -218,6 +220,36 @@ async function manageMember(id) {
     await store.commit(res.state, cleanEntry(res.entry), { removedMemberIds: [id] });
   } catch (e) {
     R.feedback("fb-nm", e.message, true);
+  }
+}
+
+async function deleteLedgerEntry(id) {
+  const l = snap.ledger.find((x) => x.id === id);
+  if (!l) return;
+  const desc = `${R.TYPE_LABELS[l.type] || l.type}${l.memberName ? " — " + R.esc(l.memberName) : ""}${l.amountCents ? " · " + M.fmtUSD(l.amountCents) : ""}`;
+  let rev = null, revErr = null;
+  if (state && ["deposit", "withdrawal", "member-added"].includes(l.type)) {
+    try { rev = M.reverseEntry(state, l); } catch (e) { revErr = e.message; }
+  }
+  try {
+    const actn = await modal(`<h3>Delete ledger record?</h3>
+      <p><b>${desc}</b></p>
+      ${rev ? `<button class="choice" data-act="undo"><b>Undo the movement</b>
+        Reverses the exact units and amount, then deletes the record — balances return to what they were, as if it never happened.</button>` : ""}
+      ${revErr ? `<p style="font-size:13px">This movement can't be reversed automatically: ${R.esc(revErr)}</p>` : ""}
+      <button class="choice" data-act="del"><b>Delete the record only</b>
+        Balances and units stay exactly as they are — only this line disappears from the ledger.</button>
+      <div class="btnrow"><button class="btn quiet" data-act="">Cancel</button></div>`);
+    if (actn === "undo" && rev) {
+      await store.commit(rev.state, null, {
+        removedMemberIds: rev.removedMemberId ? [rev.removedMemberId] : [],
+        deleteLedgerIds: [id],
+      });
+    } else if (actn === "del") {
+      await store.deleteLedger(id);
+    }
+  } catch (e) {
+    console.error(e);
   }
 }
 

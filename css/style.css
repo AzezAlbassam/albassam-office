@@ -394,6 +394,18 @@ select {
 .ledger-row .amt.gain { color: var(--gain); }
 .ledger-row .amt.loss { color: var(--loss); }
 .ledger-row .when { display: block; font-size: 11.5px; color: var(--ink-3); font-weight: 400; }
+.ledger-row .right { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.ledger-row .del {
+  background: none;
+  border: 1px solid var(--hair);
+  color: var(--ink-3);
+  border-radius: 7px;
+  padding: 3px 9px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: border-color .2s ease, color .2s ease;
+}
+.ledger-row .del:hover { border-color: var(--loss); color: var(--loss); }
 
 /* ---------- modal ---------- */
 

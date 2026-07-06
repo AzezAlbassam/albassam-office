@@ -200,14 +200,14 @@ export function renderHistory(history, fxRate, editMode) {
 
 // ---------- ledger ----------
 
-const TYPE_LABELS = {
+export const TYPE_LABELS = {
   founding: "Founding", deposit: "Deposit", withdrawal: "Withdrawal",
   "member-added": "New member", "member-removed": "Removed",
   "member-removed-redeemed": "Removed · redeemed", "member-removed-reassigned": "Removed · reassigned",
   revaluation: "Revaluation", settings: "Settings", import: "Restore",
 };
 
-export function renderLedger(ledger) {
+export function renderLedger(ledger, editMode) {
   const host = el("ledger");
   if (!ledger.length) { host.innerHTML = `<div class="empty">Every movement will be recorded here.</div>`; return; }
   host.innerHTML = ledger.map((l) => {
@@ -223,7 +223,7 @@ export function renderLedger(ledger) {
     return `<div class="ledger-row">
       <span class="what"><span class="tag">${TYPE_LABELS[l.type] || esc(l.type)}</span>${who}${note}
         ${l.dateLabel ? `<span class="when">for ${l.dateLabel} · recorded ${when}</span>` : `<span class="when">${when}</span>`}</span>
-      <span class="amt ${cls}">${amt}</span></div>`;
+      <span class="right"><span class="amt ${cls}">${amt}</span>${editMode ? `<button class="del" data-ledger-del="${l.id}" aria-label="Delete this record">✕</button>` : ""}</span></div>`;
   }).join("");
 }
 

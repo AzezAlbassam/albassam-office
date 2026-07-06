@@ -95,6 +95,7 @@ export class FirestoreStore {
       });
     }
     for (const id of opts.removedMemberIds || []) b.delete(doc(this.colRef("members"), id));
+    for (const id of opts.deleteLedgerIds || []) b.delete(doc(this.colRef("ledger"), id));
     if (entry) b.set(doc(this.colRef("ledger")), { ...entry, at: serverTimestamp() });
     if (opts.history) {
       b.set(doc(this.colRef("history"), opts.history.date), {
@@ -113,6 +114,11 @@ export class FirestoreStore {
   async deleteHistory(id) {
     const { deleteDoc, doc } = this.fs;
     await deleteDoc(doc(this.colRef("history"), id));
+  }
+
+  async deleteLedger(id) {
+    const { deleteDoc, doc } = this.fs;
+    await deleteDoc(doc(this.colRef("ledger"), id));
   }
 
   // Full restore from a backup file: wipe namespace, rewrite.
@@ -174,7 +180,7 @@ function demoSeed() {
     ],
     ledger: [
       { id: "l3", type: "revaluation", amountCents: 28640000, unitsDeltaMicro: 0, note: "monthly mark", atMs: now - 2 * DAY },
-      { id: "l2", type: "deposit", memberName: "Turki", amountCents: 500000, unitsDeltaMicro: 4832000000, atMs: now - 40 * DAY },
+      { id: "l2", type: "deposit", memberId: "demoT", memberName: "Turki", amountCents: 500000, unitsDeltaMicro: 4832000000, atMs: now - 40 * DAY },
       { id: "l1", type: "founding", amountCents: 24100000, unitsDeltaMicro: 241000000000, atMs: now - 220 * DAY },
     ],
   };
@@ -210,8 +216,14 @@ export class MemoryStore {
       zakatPct: state.zakatPct,
     };
     this.data.members = state.members.map((m) => ({ ...m }));
+    if (opts.deleteLedgerIds) this.data.ledger = this.data.ledger.filter((l) => !opts.deleteLedgerIds.includes(l.id));
     if (entry) this.data.ledger.push({ ...entry, id: "l" + Math.random().toString(36).slice(2), atMs: Date.now() });
     if (opts.history) await this.upsertHistory(opts.history.date, opts.history.valueCents, true);
+    this.emit();
+  }
+
+  async deleteLedger(id) {
+    this.data.ledger = this.data.ledger.filter((l) => l.id !== id);
     this.emit();
   }
 

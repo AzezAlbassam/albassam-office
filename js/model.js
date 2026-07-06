@@ -295,6 +295,50 @@ export function revalue(state, newMarketValueCents) {
   };
 }
 
+// Reverse a ledger entry's effect exactly (undo). Only movements
+// that recorded an exact unit delta are reversible — the reversal
+// uses the stored units, so it is exact even after later
+// revaluations. Returns { state, removedMemberId? }.
+export function reverseEntry(state, entry) {
+  const t = entry.type;
+  if (t === "deposit" || t === "member-added") {
+    const s = clone(state);
+    const m = s.members.find((x) => x.id === entry.memberId);
+    if (!m) throw new ModelError("That member no longer exists, so the movement can't be reversed.");
+    const units = entry.unitsDeltaMicro;
+    if (!Number.isInteger(units) || units <= 0) throw new ModelError("This record carries no unit delta to reverse.");
+    if (m.unitsMicro < units) {
+      throw new ModelError(`${m.name} now holds less than this movement issued — record a withdrawal instead.`);
+    }
+    const mvAfter = s.marketValueCents - entry.amountCents;
+    if (mvAfter < 0 || (mvAfter === 0 && s.totalUnitsMicro - units > 0)) {
+      throw new ModelError("Reversing this would take the portfolio value below the remaining members' holdings.");
+    }
+    m.unitsMicro -= units;
+    m.netContributedCents -= entry.amountCents;
+    s.totalUnitsMicro -= units;
+    s.marketValueCents = mvAfter;
+    if (t === "member-added" && m.unitsMicro === 0) {
+      s.members = s.members.filter((x) => x.id !== m.id);
+      return { state: s, removedMemberId: m.id };
+    }
+    return { state: s };
+  }
+  if (t === "withdrawal") {
+    const s = clone(state);
+    const m = s.members.find((x) => x.id === entry.memberId);
+    if (!m) throw new ModelError("That member no longer exists, so the movement can't be reversed.");
+    const units = -entry.unitsDeltaMicro;
+    if (!Number.isInteger(units) || units <= 0) throw new ModelError("This record carries no unit delta to reverse.");
+    m.unitsMicro += units;
+    m.netContributedCents += entry.amountCents;
+    s.totalUnitsMicro += units;
+    s.marketValueCents += entry.amountCents;
+    return { state: s };
+  }
+  throw new ModelError("Only deposits, withdrawals, and member admissions can be reversed.");
+}
+
 export function updateSettings(state, { fxRate, zakatPct }) {
   const s = clone(state);
   const notes = [];

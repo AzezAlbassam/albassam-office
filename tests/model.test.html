@@ -181,6 +181,53 @@ t('stress: 200 mixed ops — values always reconcile, % always 100.00%', () => {
   }
 });
 
+// Reversal (ledger undo)
+t('reverse deposit: state returns exactly to before', () => {
+  let st = M.found([
+    { name: 'A', valueCents: 10000000, contributedCents: 10000000 },
+    { name: 'B', valueCents: 5000000, contributedCents: 5000000 },
+  ]).state;
+  const snapshot = JSON.stringify(st);
+  const dep = M.deposit(st, st.members[0].id, 777700);
+  const revalued = M.revalue(dep.state, 20000000).state;
+  const undone = M.reverseEntry(revalued, { type: 'deposit', memberId: dep.entry.memberId, amountCents: dep.entry.amountCents, unitsDeltaMicro: dep.entry.unitsDeltaMicro });
+  const before = JSON.parse(snapshot);
+  eq(undone.state.totalUnitsMicro, before.totalUnitsMicro, 'total units');
+  eq(undone.state.members[0].unitsMicro, before.members[0].unitsMicro, 'A units');
+  eq(undone.state.members[0].netContributedCents, before.members[0].netContributedCents, 'A contrib');
+  eq(undone.state.marketValueCents, 20000000 - 777700, 'mv keeps later revaluation minus the deposit');
+});
+t('reverse withdrawal: units and capital restored', () => {
+  let st = M.found([
+    { name: 'A', valueCents: 10000000, contributedCents: 10000000 },
+    { name: 'B', valueCents: 5000000, contributedCents: 5000000 },
+  ]).state;
+  const w = M.withdraw(st, st.members[1].id, 300000);
+  const undone = M.reverseEntry(w.state, { type: 'withdrawal', memberId: w.entry.memberId, amountCents: w.entry.amountCents, unitsDeltaMicro: w.entry.unitsDeltaMicro });
+  eq(undone.state.members[1].unitsMicro, st.members[1].unitsMicro, 'B units');
+  eq(undone.state.members[1].netContributedCents, st.members[1].netContributedCents, 'B contrib');
+  eq(undone.state.marketValueCents, st.marketValueCents, 'mv');
+});
+t('reverse deposit blocked when member no longer holds those units', () => {
+  let st = M.found([
+    { name: 'A', valueCents: 10000000, contributedCents: 10000000 },
+    { name: 'B', valueCents: 5000000, contributedCents: 5000000 },
+  ]).state;
+  const dep = M.deposit(st, st.members[1].id, 500000);
+  const bId = dep.state.members[1].id;
+  const emptied = M.withdraw(dep.state, bId, M.maxWithdrawableCents(dep.state, bId)).state;
+  throws(() => M.reverseEntry(emptied, { type: 'deposit', memberId: bId, amountCents: 500000, unitsDeltaMicro: dep.entry.unitsDeltaMicro }), 'record a withdrawal');
+});
+t('reverse member-added removes the member when it empties them', () => {
+  let st = M.found([{ name: 'A', valueCents: 10000000, contributedCents: 10000000 }]).state;
+  const add = M.addMember(st, 'Sara', 2000000);
+  const undone = M.reverseEntry(add.state, { type: 'member-added', memberId: add.entry.memberId, amountCents: add.entry.amountCents, unitsDeltaMicro: add.entry.unitsDeltaMicro });
+  eq(undone.state.members.length, 1, 'member count');
+  eq(undone.removedMemberId, add.entry.memberId, 'removed id');
+  eq(undone.state.marketValueCents, st.marketValueCents, 'mv');
+  eq(undone.state.totalUnitsMicro, st.totalUnitsMicro, 'units');
+});
+
 out.insertAdjacentHTML('beforeend', `<h1>${passed} passed, ${failed} failed</h1>`);
 document.title = failed ? `✗ ${failed} FAILED` : `✓ all ${passed} passed`;
 </script>
