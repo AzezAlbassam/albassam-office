@@ -1,0 +1,1 @@
+All UI work must follow the Albassam design system in ./design-system/ (obsidian ground, gold #c8a96e accents, ivory text, terracotta for losses). Read BRAND.md and the token files in design-system/system/ before any visual changes.
