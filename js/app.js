@@ -45,6 +45,7 @@ function renderAll() {
   const founding = $("founding");
   if (founding) founding.hidden = founded || !editUI;
 
+  R.renderHero(state);
   R.renderSeal(state);
   R.renderStats(state);
   R.renderMembers(state, editUI);

@@ -5,7 +5,7 @@
 
 import * as M from "./model.js";
 
-const TONES = ["#C8A96E", "#E0CFA5", "#8C6F4A", "#D4BC8A", "#A6905E", "#77623F", "#B89B68", "#EADFC1"];
+const TONES = ["#A07D4B", "#C6A467", "#6E5A38", "#D4BC8A", "#8C7350", "#B99B63", "#5C4E36", "#E0CFA5"];
 
 export function tone(i) { return TONES[i % TONES.length]; }
 
@@ -15,10 +15,33 @@ export function esc(s) {
 
 function el(id) { return document.getElementById(id); }
 
+// ---------- hero ----------
+
+export function renderHero(state) {
+  const value = el("hero-value"), sar = el("hero-sar"), chips = el("hero-chips");
+  if (!value) return;
+  if (!state) {
+    value.textContent = "Not yet established";
+    sar.textContent = "The office opens with its founding members' first entry.";
+    chips.innerHTML = "";
+    return;
+  }
+  const mv = state.marketValueCents;
+  value.textContent = M.fmtUSD(mv);
+  sar.textContent = `≈ ${M.fmtSAR(mv, state.fxRate)} at ${state.fxRate} SAR / USD`;
+  const pl = mv - M.totalContributedCents(state);
+  const contributed = M.totalContributedCents(state);
+  const plPct = contributed > 0 ? (pl / contributed) * 100 : 0;
+  const sign = pl >= 0 ? "+" : "−";
+  chips.innerHTML = `
+    <span class="chip ${pl >= 0 ? "gain" : "loss"}">${sign}${M.fmtUSD(Math.abs(pl))} · ${sign}${Math.abs(plPct).toFixed(2)}% all time</span>
+    <span class="chip neutral">Zakat ${M.fmtUSD(M.zakatCents(mv, state.zakatPct))}</span>`;
+}
+
 // ---------- the seal ----------
 
 export function renderSeal(state) {
-  const CX = 310, CY = 230, R = 165, C = 2 * Math.PI * R;
+  const CX = 280, CY = 210, R = 150, C = 2 * Math.PI * R;
   let arcs = "", nodes = "", labels = "";
 
   if (state && state.totalUnitsMicro > 0) {
@@ -34,43 +57,34 @@ export function renderSeal(state) {
       const a = -Math.PI / 2 + midFrac * 2 * Math.PI;
       const nx = CX + R * Math.cos(a), ny = CY + R * Math.sin(a);
       const initial = esc(m.name.trim().charAt(0).toUpperCase());
-      nodes += `<circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="13" fill="#0A0C0F" stroke="${tone(i)}" stroke-width="1.2"/>
-        <text x="${nx.toFixed(1)}" y="${(ny + 4).toFixed(1)}" text-anchor="middle" font-family="Marcellus,serif" font-size="12" fill="${tone(i)}">${initial}</text>`;
+      nodes += `<circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="13" fill="#FFFFFF" stroke="${tone(i)}" stroke-width="1.3"/>
+        <text x="${nx.toFixed(1)}" y="${(ny + 4).toFixed(1)}" text-anchor="middle" font-family="Fraunces,serif" font-size="12" fill="${tone(i)}">${initial}</text>`;
       const lx = CX + (R + 34) * Math.cos(a), ly = CY + (R + 34) * Math.sin(a);
       const anchor = Math.cos(a) > 0.3 ? "start" : Math.cos(a) < -0.3 ? "end" : "middle";
       const dy = Math.sin(a) < -0.85 ? -6 : Math.sin(a) > 0.85 ? 12 : 0;
-      labels += `<g class="seal-label"><text x="${lx.toFixed(1)}" y="${(ly - 3 + dy).toFixed(1)}" text-anchor="${anchor}" font-size="12.5" fill="#EAE6DD">${esc(m.name)}</text>
-        <text x="${lx.toFixed(1)}" y="${(ly + 13 + dy).toFixed(1)}" text-anchor="${anchor}" font-size="12.5" font-weight="500" fill="#C8A96E">${M.fmtPctBp2(pcts[i])}</text></g>`;
+      labels += `<g class="seal-label"><text x="${lx.toFixed(1)}" y="${(ly - 3 + dy).toFixed(1)}" text-anchor="${anchor}" font-size="12.5" font-weight="500" fill="#1C1A17">${esc(m.name)}</text>
+        <text x="${lx.toFixed(1)}" y="${(ly + 13 + dy).toFixed(1)}" text-anchor="${anchor}" font-size="12.5" fill="#8A6B3B">${M.fmtPctBp2(pcts[i])}</text></g>`;
       acc += frac * C;
     });
   }
 
-  let center;
-  if (!state) {
-    center = `<text x="${CX}" y="${CY + 5}" text-anchor="middle" font-size="13" letter-spacing="2" fill="#9C968A">NOT YET ESTABLISHED</text>`;
-  } else {
-    const mv = state.marketValueCents;
-    const usd = M.fmtUSD(mv);
-    const size = usd.length > 14 ? 34 : usd.length > 11 ? 40 : 46;
-    const pl = mv - M.totalContributedCents(state);
-    const contributed = M.totalContributedCents(state);
-    const plPct = contributed > 0 ? (pl / contributed) * 100 : 0;
-    const plColor = pl >= 0 ? "#58A47C" : "#C25E4C";
-    const plSign = pl >= 0 ? "+" : "−";
-    center = `
-      <text x="${CX}" y="${CY - 44}" text-anchor="middle" font-size="10.5" letter-spacing="3" fill="#C8A96E">TOTAL HOLDINGS</text>
-      <text x="${CX}" y="${CY + 4}" text-anchor="middle" font-family="Fraunces,serif" font-weight="300" font-size="${size}" fill="#F2EEE4">${usd}</text>
-      <text x="${CX}" y="${CY + 32}" text-anchor="middle" font-size="13.5" fill="#C8A96E">≈ ${M.fmtSAR(mv, state.fxRate)}</text>
-      <text x="${CX}" y="${CY + 58}" text-anchor="middle" font-size="12" font-weight="500" fill="${plColor}">${plSign}${M.fmtUSD(Math.abs(pl))} · ${plSign}${Math.abs(plPct).toFixed(2)}% all time</text>`;
-  }
+  const mark = `
+    <g transform="translate(${CX} ${CY})" aria-hidden="true">
+      <rect x="-9" y="-9" width="18" height="18" fill="none" stroke="#B08D55" stroke-width="1"/>
+      <rect x="-9" y="-9" width="18" height="18" fill="none" stroke="#B08D55" stroke-width="1" transform="rotate(45)"/>
+      <circle r="2" fill="#B08D55"/>
+    </g>`;
+  const center = state
+    ? `${mark}<text x="${CX}" y="${CY + 34}" text-anchor="middle" font-size="13" fill="#6F6A61">${state.members.length} member${state.members.length === 1 ? "" : "s"}</text>`
+    : `${mark}<text x="${CX}" y="${CY + 34}" text-anchor="middle" font-size="13" fill="#A29C93">Not yet established</text>`;
 
   el("seal").innerHTML = `
-    <svg viewBox="0 0 620 460" role="img" aria-label="Family seal: total holdings encircled by member ownership arcs">
-      <circle class="seal-spin" cx="${CX}" cy="${CY}" r="${R + 13}" fill="none" stroke="#C8A96E" stroke-width="6" stroke-dasharray="1 14.55" opacity=".18"/>
-      <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="#23272E" stroke-width="2.5"/>
+    <svg viewBox="0 0 560 420" role="img" aria-label="Family seal: member ownership shares drawn as arcs of one ring">
+      <circle class="seal-spin" cx="${CX}" cy="${CY}" r="${R + 13}" fill="none" stroke="#B08D55" stroke-width="6" stroke-dasharray="1 13.34" opacity=".25"/>
+      <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="#EAE6DE" stroke-width="2.5"/>
       ${arcs}
-      <circle cx="${CX}" cy="${CY}" r="${R - 40}" fill="none" stroke="#7E6A45" stroke-width=".6" opacity=".5"/>
-      <circle cx="${CX}" cy="${CY}" r="${R - 45}" fill="none" stroke="#7E6A45" stroke-width=".5" opacity=".25"/>
+      <circle cx="${CX}" cy="${CY}" r="${R - 40}" fill="none" stroke="#B08D55" stroke-width=".6" opacity=".45"/>
+      <circle cx="${CX}" cy="${CY}" r="${R - 45}" fill="none" stroke="#B08D55" stroke-width=".5" opacity=".22"/>
       ${nodes}${labels}${center}
     </svg>`;
 }
@@ -155,24 +169,24 @@ export function renderHistory(history, fxRate, editMode) {
   const ys = (v) => Ht - padB - ((v - min) / (max - min)) * (Ht - padT - padB);
 
   let s = `<defs><linearGradient id="au" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="#C8A96E" stop-opacity=".16"/><stop offset="1" stop-color="#C8A96E" stop-opacity="0"/></linearGradient></defs>`;
+    <stop offset="0" stop-color="#B08D55" stop-opacity=".14"/><stop offset="1" stop-color="#B08D55" stop-opacity="0"/></linearGradient></defs>`;
   for (let g = 0; g <= 4; g++) {
     const v = max - ((max - min) * g) / 4, gy = ys(v);
-    s += `<line x1="${padL}" x2="${W - padR}" y1="${gy.toFixed(1)}" y2="${gy.toFixed(1)}" stroke="#1C2026" stroke-width="1"/>
-      <text x="${padL - 10}" y="${(gy + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="#6B665C">$${Math.round(v).toLocaleString("en-US")}</text>`;
+    s += `<line x1="${padL}" x2="${W - padR}" y1="${gy.toFixed(1)}" y2="${gy.toFixed(1)}" stroke="#EFEBE3" stroke-width="1"/>
+      <text x="${padL - 10}" y="${(gy + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="#A29C93">$${Math.round(v).toLocaleString("en-US")}</text>`;
   }
   const pts = H.map((h, i) => `${xs(i).toFixed(1)},${ys(h.valueCents / 100).toFixed(1)}`);
   if (H.length > 1) {
     s += `<path d="M${xs(0).toFixed(1)},${Ht - padB} L${pts.join(" L")} L${xs(H.length - 1).toFixed(1)},${Ht - padB} Z" fill="url(#au)"/>
-      <polyline points="${pts.join(" ")}" fill="none" stroke="#C8A96E" stroke-width="2"/>`;
+      <polyline points="${pts.join(" ")}" fill="none" stroke="#8A6B3B" stroke-width="2"/>`;
   }
   const step = Math.max(1, Math.ceil(H.length / 8));
   H.forEach((h, i) => {
     const X = xs(i), Y = ys(h.valueCents / 100);
-    s += `<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="3.4" fill="#0A0C0F" stroke="#C8A96E" stroke-width="1.6"><title>${h.date} · ${M.fmtUSD(h.valueCents)}</title></circle>`;
-    if (H.length <= 8) s += `<text x="${X.toFixed(1)}" y="${(Y - 12).toFixed(1)}" text-anchor="middle" font-size="11" fill="#EAE6DD">$${Math.round(h.valueCents / 100).toLocaleString("en-US")}</text>`;
+    s += `<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="3.4" fill="#FFFFFF" stroke="#8A6B3B" stroke-width="1.6"><title>${h.date} · ${M.fmtUSD(h.valueCents)}</title></circle>`;
+    if (H.length <= 8) s += `<text x="${X.toFixed(1)}" y="${(Y - 12).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="500" fill="#1C1A17">$${Math.round(h.valueCents / 100).toLocaleString("en-US")}</text>`;
     if (i % step === 0 || i === H.length - 1) {
-      s += `<text x="${X.toFixed(1)}" y="${Ht - padB + 20}" text-anchor="middle" font-size="10.5" fill="#6B665C">${shortDate(h.date)}</text>`;
+      s += `<text x="${X.toFixed(1)}" y="${Ht - padB + 20}" text-anchor="middle" font-size="10.5" fill="#A29C93">${shortDate(h.date)}</text>`;
     }
   });
   svgHost.innerHTML = `<svg viewBox="0 0 ${W} ${Ht}" role="img" aria-label="Portfolio value over time">${s}</svg>`;
@@ -200,7 +214,7 @@ export function renderLedger(ledger) {
     const when = new Date(l.atMs).toLocaleString("en-GB", {
       day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
     });
-    const who = l.memberName ? `<b>${esc(l.memberName)}</b> · ` : "";
+    const who = l.memberName ? `<b>${esc(l.memberName)}</b>${l.note ? " · " : ""}` : "";
     const note = l.note ? esc(l.note) : "";
     let amt = "", cls = "";
     if (l.type === "deposit" || l.type === "founding" || l.type === "member-added") { amt = "+" + M.fmtUSD(l.amountCents); cls = "gain"; }
