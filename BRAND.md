@@ -1,66 +1,96 @@
 # Albassam — Private Family Office
 
-A private family office ledger — obsidian ground, brushed-gold seal, tabular-numeral portfolio history for members of the Albassam family. Extracted and measured from https://azezalbassam.github.io/albassam-office.
+A private family office ledger — warm paper ground, one bronze seal, editorial serif
+numerals, hairline surfaces. Codified from the v2 redesign shipped 2026-07-06
+(Stripe/Apple/Claude-inspired light system; supersedes the original obsidian/gold theme).
 
-This is a prose brief for an autonomous design agent building anything in this system: a landing page, a deck, a component, an email. Read it before you touch color or type.
+This is a prose brief for an autonomous design agent building anything in this system:
+a landing page, a deck, a component, an email. Read it before you touch color or type.
 
 ## The one-sentence brief
 
-Old-money custodial ledger, not fintech dashboard: obsidian ground, one gold seal, hairline rules, tabular numerals, and total restraint everywhere else.
+Old-money custodial ledger in a modern product idiom: warm paper ground, white
+hairline cards, one bronze seal, serif numerals when a figure matters, and total
+restraint everywhere else.
 
 ## Color
 
-Seven roles, all measured from the site's live `:root` custom properties (never guessed):
+Measured from the site's live `:root` custom properties (never guessed):
 
 | Role | Hex | Use it for |
 | --- | --- | --- |
-| background — Obsidian | `#0a0c0f` | the page ground, near-black |
-| surface — Panel | `#14171c` | cards, stat tiles, member rows |
-| foreground — Ivory | `#eae6dd` | body text and ledger figures |
-| muted — Stone | `#9c968a` | labels, captions, secondary text |
-| border — Line | `#23272e` | hairlines and dividers |
-| accent — Gold | `#c8a96e` | the wordmark, the seal, primary actions — the signal color, used more than anything else |
-| accent-secondary — Terracotta | `#c25e4c` | negative figures and destructive actions ONLY |
+| background — Paper | `#FAF9F6` | the page ground, warm off-white |
+| surface — Card | `#FFFFFF` | cards, stat strip, panels, ledger |
+| foreground — Ink | `#1C1A17` | body text, figures, primary buttons |
+| muted — Ink 60 | `#6F6A61` | labels, captions, secondary text (faint tier `#A29C93` for hints/axes) |
+| border — Hair | `#EAE6DE` | hairlines and dividers (`#DBD5C9` on inputs) |
+| accent — Bronze | `#8A6B3B` | the seal, percentages, brand emphasis — text-safe; `#B08D55` for strokes/graphics, `#F3EDE1` as tint fill |
+| loss — Terracotta | `#B4453A` | negative figures and destructive actions ONLY (tint `#FBEDEB`) |
 
-Two extra semantic tones live outside the 7-role schema but are load-bearing on the real site — carry them into any new build:
-- **Gain (emerald) `#58a47c`** — positive/gain figures only.
-- **Gold tints** — `#e0cfa5` pale (hover), `#7e6a45` deep (secondary labels/sub-values), `#8c6f4a` bronze (tags).
+One extra semantic tone is load-bearing:
+- **Gain (emerald) `#1E7A4F`** — positive figures only (tint `#E9F4EE`).
 
-Discipline matters more than the palette itself: gold marks brand and positive/primary emphasis, emerald marks gains, terracotta marks losses — and none of the three is ever used decoratively outside that meaning. If you're tempted to add a fourth "accent" for variety, don't — the whole system runs on the tension between one warm gold seal and an otherwise near-monochrome ground.
+Discipline matters more than the palette itself: bronze marks brand, emerald marks
+gains, terracotta marks losses — none of the three is ever decorative. Shadows are
+warm-tinted (`rgba(92,76,51,…)`), never pure black, and stay soft: cards rest on
+hairlines first, shadows second.
 
 ## Typography
 
-Three real typefaces, each with one job:
+Two typefaces, each with one job:
 
-- **Marcellus** (display, weight 400 only) — the masthead wordmark and panel/modal headings. Track it hard: the source uses .3em+ letter-spacing on the wordmark. Never use it for body copy or long text — it isn't legible at small sizes.
-- **Inter** (body/UI, 400/500/600) — everything else: labels, buttons, form fields, section eyebrows.
-- **Fraunces** (numeral display, 300/400) — reserved exclusively for the figures that matter: stat values, percentages, ledger amounts. This is the system's signature typographic move — when a number is important enough to notice, it switches from Inter to Fraunces. Don't use Fraunces for prose.
+- **Fraunces** (display serif, 300/400/500) — the signature voice: the hero holdings
+  figure (300, tight tracking), section headings and card titles (500), stat values and
+  ownership percentages (400). When a number is important enough to notice, it switches
+  to Fraunces. Never for body copy.
+- **Geist** (UI sans, 400/500/600) — everything else: labels, buttons, forms, data rows,
+  captions. Tabular numerals on all data.
+
+Marcellus (v1's display face) is retired. Do not reintroduce it.
 
 ## Logo
 
-One mark, two saved weights, both in `logos/`:
-- `logos/header.svg` — the full masthead lockup: two rotated 18×18 squares plus a center dot, 1px gold stroke. Use this as primary.
-- `logos/favicon.svg` — the simplified two-square favicon (no center dot), for small/tight placements.
+One mark — the khatam seal (two rotated squares + center dot), 1px+ bronze stroke:
+- `logos/header.svg` — full lockup mark for mastheads.
+- `logos/favicon.svg` — simplified two-square favicon (no center dot).
 
-There is no raster logo, no apple-touch-icon, and no og:image on the real site — it's marked `noindex` and isn't built for social sharing. Don't invent a wordmark lockup or a photographic hero; the seal is the entire mark.
+There is no raster logo and no og:image; the site is `noindex`. The seal is the entire
+mark — don't invent a photographic hero or a new lockup.
 
 ## Imagery
 
-There is no photography on the source site — none. The entire visual identity is the line-art seal: thin 1px gold strokes, generous negative space, perfect symmetry, one slow 240s ambient rotation (switched off under `prefers-reduced-motion`). If a new artifact needs a "hero image," the honest answer is: it doesn't get one. Reach for typographic composition, the seal mark, and a hairline rule before reaching for a photo, an illustration, or a gradient.
+No photography. The identity is the line-art seal and the numbers themselves: thin
+bronze strokes, generous negative space, one slow ambient rotation on the seal's tick
+ring (switched off under `prefers-reduced-motion`). If a new artifact seems to need a
+hero image, it doesn't — reach for typographic composition, the seal, and a hairline.
 
 ## Layout posture
 
-- **Two-tier radius, not one number:** 14px on content cards (stat tiles, member panels), a tighter 9px on interactive controls (buttons, inputs), and 999px pills for status chips. Don't collapse this to a single global radius.
-- **Centered, ceremonial masthead** — not a left-aligned SaaS nav bar. Wide letter-spacing, a bilingual identity line (English wordmark, Arabic subtitle beneath it as co-equal identity), a thin descriptor rule either side.
-- **Uppercase micro-labels everywhere**, heavily tracked (.14em–.28em), with hairline rules flanking section headings instead of icons. No icon-per-heading pattern.
-- **1px hairlines throughout** — no shadows, no heavy borders.
-- **4px base spacing unit**; component padding sits in the 14–22px range; section rhythm is generous, 42–70px between major blocks.
-- **Motion is a single flourish** — the seal's slow rotation — and nothing else animates. Respect `prefers-reduced-motion` completely.
+- **Left-aligned product topbar** — small seal + "Albassam · Family office" wordmark in
+  Fraunces, status pills right. Not a centered ceremonial masthead (that was v1).
+- **Asymmetric hero:** the holdings figure left, the seal right on desktop; stacked and
+  centered on mobile. The value lives in HTML type, not inside the seal.
+- **Segmented stat strip** — one white card, hairline-divided cells, not floating boxes.
+- **Two-tier radius:** 18px content cards, 9–10px controls, 999px pills. Never one
+  global radius.
+- **Sentence case everywhere.** One uppercase eyebrow ("Total holdings") is the only
+  tracked-caps survivor. Section headings are Fraunces sentence case with a one-line
+  muted subtitle — no flanking rules, no icons.
+- **1px hairlines + soft warm shadows;** 4px base spacing; 56–72px section rhythm.
+- **Motion:** the seal's slow rotation, a fade-up entrance stagger, and hover lift on
+  cards — nothing else. All disabled under `prefers-reduced-motion`.
 
 ## Voice
 
-Private, custodial, understated, precise, ceremonial. The copy reads like a ledger kept by a family office, not a fintech product: "Registry," "Ledger," "Members," "Portfolio history," "Family wealth, stewarded." No exclamation points. No growth-marketing verbs ("unlock," "supercharge"). No calling members "users" or "clients." Say "family office," not "app" or "dashboard."
+Private, custodial, understated, precise. English only — the Arabic subtitle was
+removed by the owner's decision on 2026-07-06; do not reintroduce Arabic script.
+The copy reads like a ledger kept by a family office: "Registry," "Ledger," "Members,"
+"Portfolio history," "Family wealth, stewarded." No exclamation points, no growth
+verbs, never "users" or "dashboard."
 
 ## What "good" looks like here
 
-If a new artifact in this system could be mistaken for a generic fintech dashboard — bright cards, icon rows, drop shadows, a peppy CTA — it has drifted. The tell of this brand is restraint: one gold seal, one hairline rule, one register-shift when a number really matters, and silence everywhere else.
+If a new artifact could be mistaken for a generic fintech dashboard — saturated
+accents, icon rows, heavy shadows, a peppy CTA — it has drifted. The tell of this
+brand is restraint: one bronze seal, one hairline, one register-shift to Fraunces when
+a number really matters, and silence everywhere else.
