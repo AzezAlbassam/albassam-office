@@ -76,19 +76,32 @@ function onSnap(s, err) {
 
 // ---------- modal ----------
 
-function modal(html) {
+function modalAsk(html) {
   return new Promise((resolve) => {
     const host = $("modal-host");
     host.innerHTML = `<div class="modal-veil"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
-    const done = (act) => { host.innerHTML = ""; resolve(act); };
+    const done = (act) => {
+      const input = host.querySelector("#modal-input");
+      const value = input ? input.value : null;
+      host.innerHTML = "";
+      resolve({ act, value });
+    };
     host.querySelector(".modal-veil").addEventListener("click", (e) => { if (e.target === e.currentTarget) done(null); });
     host.querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", () => done(b.dataset.act)));
     document.addEventListener("keydown", function esc(e) {
+      if (!$("modal-host").firstChild) { document.removeEventListener("keydown", esc); return; }
       if (e.key === "Escape") { document.removeEventListener("keydown", esc); done(null); }
+      if (e.key === "Enter" && host.querySelector("#modal-input") === document.activeElement) {
+        document.removeEventListener("keydown", esc); done("save");
+      }
     });
-    const first = host.querySelector("button"); if (first) first.focus();
+    const input = host.querySelector("#modal-input");
+    if (input) { input.focus(); input.select(); }
+    else { const first = host.querySelector("button"); if (first) first.focus(); }
   });
 }
+
+async function modal(html) { return (await modalAsk(html)).act; }
 
 // ---------- actions ----------
 
@@ -180,8 +193,12 @@ function wireEditActions() {
     if (manage) manageMember(manage.dataset.manage);
     const histDel = e.target.closest("[data-hist-del]");
     if (histDel) deleteHistoryPoint(histDel.dataset.histDel);
+    const histEdit = e.target.closest("[data-hist-edit]");
+    if (histEdit) editHistoryPoint(histEdit.dataset.histEdit);
     const ledgerDel = e.target.closest("[data-ledger-del]");
     if (ledgerDel) deleteLedgerEntry(ledgerDel.dataset.ledgerDel);
+    const ledgerEdit = e.target.closest("[data-ledger-edit]");
+    if (ledgerEdit) editLedgerEntry(ledgerEdit.dataset.ledgerEdit);
   });
 
   $("bk-export").addEventListener("click", exportBackup);
@@ -221,6 +238,64 @@ async function manageMember(id) {
     await store.commit(res.state, cleanEntry(res.entry), { removedMemberIds: [id] });
   } catch (e) {
     R.feedback("fb-nm", e.message, true);
+  }
+}
+
+async function editLedgerEntry(id) {
+  const l = snap.ledger.find((x) => x.id === id);
+  if (!l || !R.EDITABLE_TYPES.includes(l.type) || !state) return;
+  const label = (R.TYPE_LABELS[l.type] || l.type).toLowerCase();
+  const who = l.memberName ? `${R.esc(l.memberName)} · ` : "";
+  const how = l.type === "revaluation"
+    ? "The portfolio is revalued to the corrected figure and this record is replaced."
+    : "The original movement is reversed exactly, then re-applied at the corrected amount — balances follow.";
+  const prefill = (l.amountCents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const { act, value } = await modalAsk(`<h3>Correct this ${label}</h3>
+    <p>${who}currently ${M.fmtUSD(l.amountCents)}. ${how}</p>
+    <div class="field"><label for="modal-input">Corrected amount (USD)</label>
+    <input type="text" inputmode="decimal" id="modal-input" value="${prefill}"></div>
+    <div class="btnrow"><button class="btn" data-act="save">Save correction</button>
+    <button class="btn quiet" data-act="">Cancel</button></div>`);
+  if (act !== "save") return;
+  try {
+    const amount = M.parseUSDToCents(value);
+    let res;
+    if (l.type === "revaluation") {
+      res = M.revalue(state, amount);
+      res.entry.note = `amended · ${res.entry.note}`;
+    } else {
+      const rev = M.reverseEntry(state, l);
+      res = l.type === "deposit"
+        ? M.deposit(rev.state, l.memberId, amount)
+        : M.withdraw(rev.state, l.memberId, amount);
+      if (l.dateLabel) res.entry.dateLabel = l.dateLabel;
+      res.entry.note = `amended from ${M.fmtUSD(l.amountCents)}`;
+    }
+    await store.commit(res.state, cleanEntry(res.entry), { deleteLedgerIds: [id] });
+  } catch (e) {
+    await modal(`<h3>Couldn't apply the correction</h3><p>${R.esc(e.message)}</p>
+      <div class="btnrow"><button class="btn quiet" data-act="">Close</button></div>`);
+  }
+}
+
+async function editHistoryPoint(id) {
+  const h = snap.history.find((x) => x.id === id);
+  if (!h) return;
+  const prefill = (h.valueCents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const { act, value } = await modalAsk(`<h3>Edit history point</h3>
+    <p>${h.date} — chart value only; balances and the ledger are not affected.</p>
+    <div class="field"><label for="modal-input">Value on that date (USD)</label>
+    <input type="text" inputmode="decimal" id="modal-input" value="${prefill}"></div>
+    <div class="btnrow"><button class="btn" data-act="save">Save</button>
+    <button class="btn quiet" data-act="">Cancel</button></div>`);
+  if (act !== "save") return;
+  try {
+    const v = M.parseUSDToCents(value);
+    if (v <= 0) throw new M.ModelError("Value must be above zero.");
+    await store.upsertHistory(h.date, v);
+  } catch (e) {
+    await modal(`<h3>Couldn't save</h3><p>${R.esc(e.message)}</p>
+      <div class="btnrow"><button class="btn quiet" data-act="">Close</button></div>`);
   }
 }
 

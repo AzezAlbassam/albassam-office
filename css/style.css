@@ -437,6 +437,10 @@ input[type="date"] { color-scheme: dark; }
   transition: border-color .2s var(--ease), color .2s var(--ease);
 }
 .hist-row .del:hover, .ledger-row .del:hover { border-color: var(--loss); color: var(--loss); }
+.hist-row .edit:hover, .ledger-row .edit:hover { border-color: var(--gold); color: var(--gold); }
+
+.chart-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+.chart-scroll svg { display: block; height: auto; }
 
 /* ---------- ledger ---------- */
 

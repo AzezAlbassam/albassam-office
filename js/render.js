@@ -172,7 +172,10 @@ export function renderHistory(history, fxRate, editMode) {
     el("hist-list").innerHTML = "";
     return;
   }
-  const W = 720, Ht = 300, padL = 78, padR = 24, padT = 22, padB = 44;
+  const Ht = 300, padL = 78, padR = 40, padT = 30, padB = 44;
+  // The chart widens with the data so every point keeps its label;
+  // it scrolls horizontally and parks at the most recent point.
+  const W = Math.max(720, padL + padR + (H.length - 1) * 92);
   const vals = H.map((h) => h.valueCents / 100);
   let min = Math.min(...vals), max = Math.max(...vals);
   if (min === max) { min *= 0.92; max = max * 1.08 || 10; }
@@ -195,25 +198,30 @@ export function renderHistory(history, fxRate, editMode) {
       <polyline points="${pts.join(" ")}" fill="none" stroke="#C9A96A" stroke-width="3" opacity=".45" filter="url(#lineglow)"/>
       <polyline points="${pts.join(" ")}" fill="none" stroke="#C9A96A" stroke-width="2"/>`;
   }
-  const step = Math.max(1, Math.ceil(H.length / 8));
   H.forEach((h, i) => {
     const X = xs(i), Y = ys(h.valueCents / 100);
     s += `<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="3.4" fill="#0B0D11" stroke="#C9A96A" stroke-width="1.6"><title>${h.date} · ${M.fmtUSD(h.valueCents)}</title></circle>`;
-    if (H.length <= 8) s += `<text x="${X.toFixed(1)}" y="${(Y - 12).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="500" fill="#ECE7DC">$${Math.round(h.valueCents / 100).toLocaleString("en-US")}</text>`;
-    if (i % step === 0 || i === H.length - 1) {
-      s += `<text x="${X.toFixed(1)}" y="${Ht - padB + 20}" text-anchor="middle" font-size="10.5" fill="#938D81">${shortDate(h.date)}</text>`;
-    }
+    // every point keeps its number — alternate above/below the line
+    const above = i % 2 === 0;
+    const anchor = i === H.length - 1 ? "end" : i === 0 ? "start" : "middle";
+    s += `<text x="${X.toFixed(1)}" y="${(above ? Y - 13 : Y + 22).toFixed(1)}" text-anchor="${anchor}" font-size="11" font-weight="500" fill="#ECE7DC">$${Math.round(h.valueCents / 100).toLocaleString("en-US")}</text>`;
+    s += `<text x="${X.toFixed(1)}" y="${Ht - padB + 20}" text-anchor="${anchor}" font-size="10.5" fill="#938D81">${shortDate(h.date)}</text>`;
   });
-  svgHost.innerHTML = `<svg viewBox="0 0 ${W} ${Ht}" role="img" aria-label="Portfolio value over time">${s}</svg>`;
+  svgHost.innerHTML = `<div class="chart-scroll"><svg viewBox="0 0 ${W} ${Ht}" style="min-width:${W}px" role="img" aria-label="Portfolio value over time">${s}</svg></div>`;
+  const scroller = svgHost.querySelector(".chart-scroll");
+  scroller.scrollLeft = scroller.scrollWidth;
 
   el("hist-list").innerHTML = [...H].reverse().map((h) => `
     <div class="hist-row"><span>${h.date}</span>
       <span><span class="v">${M.fmtUSD(h.valueCents)}</span><span class="sar">≈ ${M.fmtSAR(h.valueCents, fxRate)}</span>
-      ${editMode ? `<button class="del" data-hist-del="${h.id}" aria-label="Delete ${h.date}">✕</button>` : ""}</span>
+      ${editMode ? `<button class="del edit" data-hist-edit="${h.id}" aria-label="Edit ${h.date}">✎</button>
+      <button class="del" data-hist-del="${h.id}" aria-label="Delete ${h.date}">✕</button>` : ""}</span>
     </div>`).join("");
 }
 
 // ---------- ledger ----------
+
+export const EDITABLE_TYPES = ["deposit", "withdrawal", "revaluation"];
 
 export const TYPE_LABELS = {
   founding: "Founding", deposit: "Deposit", withdrawal: "Withdrawal",
@@ -238,7 +246,7 @@ export function renderLedger(ledger, editMode) {
     return `<div class="ledger-row">
       <span class="what"><span class="tag">${TYPE_LABELS[l.type] || esc(l.type)}</span>${who}${note}
         ${l.dateLabel ? `<span class="when">for ${l.dateLabel} · recorded ${when}</span>` : `<span class="when">${when}</span>`}</span>
-      <span class="right"><span class="amt ${cls}">${amt}</span>${editMode ? `<button class="del" data-ledger-del="${l.id}" aria-label="Delete this record">✕</button>` : ""}</span></div>`;
+      <span class="right"><span class="amt ${cls}">${amt}</span>${editMode && EDITABLE_TYPES.includes(l.type) ? `<button class="del edit" data-ledger-edit="${l.id}" aria-label="Edit this amount">✎</button>` : ""}${editMode ? `<button class="del" data-ledger-del="${l.id}" aria-label="Delete this record">✕</button>` : ""}</span></div>`;
   }).join("");
 }
 
