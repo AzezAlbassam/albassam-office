@@ -1,64 +1,64 @@
 {
   "name": "Albassam — Private Family Office",
   "tagline": "Albassam",
-  "description": "A private family office ledger — warm paper ground, bronze seal, editorial serif numerals for the figures that matter. v2 light system (2026-07-06); supersedes the original obsidian/gold theme.",
+  "description": "A private family office ledger — lacquered obsidian scene, one gold gyroscope, editorial serif numerals, plates with real depth. v3 'The Instrument' (2026-07-09); supersedes the v2 paper-light system.",
   "sourceUrl": "https://azezalbassam.github.io/albassam-office",
   "logo": {
     "primary": "logos/header.svg",
     "alternates": [
       "logos/favicon.svg"
     ],
-    "notes": "One mark in two weights: logos/header.svg is the khatam seal lockup (two rotated 18×18 squares + a 2r center dot, bronze #A07D4B stroke) as shipped in the topbar <svg>. logos/favicon.svg is the simplified two-square favicon (no center dot) matching the inline data-URI <link rel=\"icon\">. No raster logo, no apple-touch-icon, no og:image — the page ships meta name=\"robots\" content=\"noindex\" and isn't meant to be socially shared."
+    "notes": "One mark in two weights: logos/header.svg is the khatam seal lockup (two rotated 18×18 squares + a 2r center dot, gold #C9A96A stroke) as shipped in the topbar <svg>. logos/favicon.svg is the simplified two-square favicon (no center dot) matching the inline data-URI <link rel=\"icon\">. No raster logo, no apple-touch-icon, no og:image — the page ships meta name=\"robots\" content=\"noindex\" and isn't meant to be socially shared."
   },
   "colors": [
     {
       "role": "background",
-      "hex": "#FAF9F6",
-      "oklch": "oklch(98.2% 0.004 91.4)",
-      "name": "Paper",
-      "usage": "page canvas — warm off-white ground (measured from --paper, used on <body>)"
+      "hex": "#0B0D11",
+      "oklch": "oklch(15.9% 0.009 264.3)",
+      "name": "Obsidian scene",
+      "usage": "page ground (from --scene; a fixed radial lift to #141821 at top center gives the scene depth; fixed 5% SVG grain overlay)"
     },
     {
       "role": "surface",
-      "hex": "#FFFFFF",
-      "oklch": "oklch(100% 0 0)",
-      "name": "Card",
-      "usage": "cards, the segmented stat strip, registry panels, ledger, inputs (measured from --card)"
+      "hex": "#14171D",
+      "oklch": "oklch(20.4% 0.013 264.2)",
+      "name": "Plate",
+      "usage": "cards/panels as vertical lacquer gradients #1A1E25→#14171D with 1px #262B33 hairline and inner top-light rgba(255,235,200,.07) (from --plate/--plate-2)"
     },
     {
       "role": "foreground",
-      "hex": "#1C1A17",
-      "oklch": "oklch(21.9% 0.007 78.2)",
-      "name": "Ink",
-      "usage": "body text, figures, and filled primary buttons (measured from --ink)"
+      "hex": "#ECE7DC",
+      "oklch": "oklch(92.9% 0.016 86.4)",
+      "name": "Ivory",
+      "usage": "body text and figures (from --ink; secondary #A8A296, faint #938D81)"
     },
     {
       "role": "muted",
-      "hex": "#6F6A61",
-      "oklch": "oklch(52.6% 0.015 82.4)",
+      "hex": "#A8A296",
+      "oklch": "oklch(71.4% 0.018 84.6)",
       "name": "Ink 60",
-      "usage": "secondary text — labels, captions, subtitles (measured from --ink-2; a faint tier --ink-3 #A29C93 / oklch(69.5% 0.015 78.2) covers hints and chart axes)"
+      "usage": "secondary text — labels, captions (from --ink-2; faint tier --ink-3 #938D81 for hints and chart axes)"
     },
     {
       "role": "border",
-      "hex": "#EAE6DE",
-      "oklch": "oklch(92.6% 0.012 84.6)",
+      "hex": "#262B33",
+      "oklch": "oklch(28.8% 0.016 259.8)",
       "name": "Hair",
-      "usage": "hairlines, dividers, card edges (measured from --hair; inputs use --hair-2 #DBD5C9 one step stronger)"
+      "usage": "hairlines, dividers, plate edges (from --hair; softer #1E232B between rows)"
     },
     {
       "role": "accent",
-      "hex": "#8A6B3B",
-      "oklch": "oklch(54.8% 0.076 77.0)",
-      "name": "Bronze",
-      "usage": "the brand's signal color — seal, ownership percentages, chart line, focus rings (measured from --accent; --accent-soft #B08D55 / oklch(66.4% 0.085 78.2) for strokes and graphics, --accent-tint #F3EDE1 as fill)"
+      "hex": "#C9A96A",
+      "oklch": "oklch(74.9% 0.090 83.5)",
+      "name": "Gold",
+      "usage": "the gyroscope, percentages, ledger tags, gold-faced primary buttons, chart line (from --gold; pale #E6D3A7, deep #8F7443, tint rgba(201,169,106,.12))"
     },
     {
       "role": "accent-secondary",
-      "hex": "#B4453A",
-      "oklch": "oklch(54.0% 0.147 28.5)",
+      "hex": "#D96C57",
+      "oklch": "oklch(65.5% 0.141 32.3)",
       "name": "Terracotta / Loss",
-      "usage": "negative figures, destructive actions, danger states only (measured from --loss; tint #FBEDEB; reserved exclusively for loss/decrease semantics, never decorative). Gains use emerald #1E7A4F / oklch(51.6% 0.109 158.0) with tint #E9F4EE, equally rationed."
+      "usage": "negative figures and destructive actions only (from --loss; tint rgba(217,108,87,.13); never decorative). Gains use emerald #5FB48A with tint rgba(95,180,138,.13), equally rationed."
     }
   ],
   "typography": {
@@ -127,19 +127,20 @@
     }
   },
   "imagery": {
-    "style": "No photography — the identity is the line-art khatam seal (two rotated squares + center dot) in bronze strokes on warm paper, plus the numbers themselves set in Fraunces.",
+    "style": "No photography — the identity is the 3D gyroscope seal (member ownership arcs precessing in preserve-3d with a gold underglow and echo ring), a fixed film grain, and the numbers themselves set in Fraunces.",
     "subjects": [
       "the geometric seal mark",
       "financial figures set in Fraunces"
     ],
-    "treatment": "Thin bronze linework, generous negative space, one slow 300s ambient rotation on the seal's tick ring (disabled under prefers-reduced-motion). Soft warm-tinted shadows allowed; the only gradient is the chart's faint bronze area fill.",
+    "treatment": "Lacquer-dark plates lit from above (inner top-light + layered black shadows), thin gold linework, one slow precession (22s) plus pointer tilt on desktop, tick ring at 300s. All motion transform/opacity, disabled under prefers-reduced-motion. Structural gradients only (scene lift, plate lacquer, chart area, gold button face).",
     "avoid": [
       "photography",
       "human figures/faces",
       "stock illustration",
       "emoji or icon packs",
-      "saturated accents",
-      "pure-black shadows"
+      "neon glow / RGB-gamer dark mode",
+      "pure-black flat #000 backgrounds",
+      "glassmorphism"
     ],
     "samples": []
   },
@@ -148,14 +149,14 @@
     "borderWeight": "1px",
     "spacing": "4px base unit; 16–24px component padding; 56–72px section rhythm",
     "postureRules": [
-      "Left-aligned product topbar (seal + 'Albassam · Family office' wordmark in Fraunces, status pills right) — not a centered ceremonial masthead; that was v1.",
-      "Asymmetric hero: the holdings figure sits left in HTML type with P/L and zakat as tinted chips, the seal sits right; the layout stacks centered on mobile. The value never renders inside the seal SVG.",
-      "Stats are one segmented white card with hairline-divided cells, not floating boxes.",
-      "Sentence case headings in Fraunces with a one-line muted subtitle; the only tracked-caps element is the hero eyebrow ('Total holdings').",
-      "Two numeral registers: tabular Geist for UI copy and dates, Fraunces reserved for the figures that matter (hero value, stat values, ownership percentages).",
-      "Semantic color is rationed: bronze marks brand, emerald #1E7A4F solely gains, terracotta #B4453A solely losses/danger — none of the three is ever decorative.",
-      "Motion is three restrained gestures: the seal's slow rotation, a fade-up entrance stagger, and hover lift on cards — nothing else, all disabled under prefers-reduced-motion.",
-      "Buttons: ink-filled primary with hover shift and active scale(0.98); quiet (white/hairline) and danger (terracotta ghost) variants; visible bronze focus rings on all interactive elements."
+      "Left-aligned product topbar (gold khatam + 'Albassam · Family office' in Fraunces, status pills right).",
+      "Asymmetric hero: holdings figure left in HTML type (Fraunces 300 with a soft glow text-shadow), the 3D gyroscope right; stacks centered on mobile. The value never renders inside the seal SVG.",
+      "The gyroscope is the only theatre: three preserve-3d layers (underglow −80px, echo −42px, crisp SVG), ±7° precession over 22s, pointer tilt via js/tilt.js on fine pointers only.",
+      "Stats are one segmented plaque (single plate, hairline-divided cells), not floating boxes.",
+      "Sentence-case Fraunces headings with muted one-line subtitles; the hero eyebrow is the only tracked-caps element.",
+      "Semantic color rationed: gold = brand, emerald #5FB48A gains only, terracotta #D96C57 losses only — never decorative.",
+      "Motion: precession + tilt, one hero entrance (rise/settle), hover lift on plates, active scale(0.98) — nothing else; cubic-bezier(0.22,1,0.36,1); fully disabled under prefers-reduced-motion.",
+      "Buttons: gold-faced primary with dark ink text, plate-quiet, terracotta-ghost danger; gold focus rings on all interactive elements."
     ]
   }
 }

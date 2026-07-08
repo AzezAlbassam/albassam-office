@@ -5,7 +5,7 @@
 
 import * as M from "./model.js";
 
-const TONES = ["#A07D4B", "#C6A467", "#6E5A38", "#D4BC8A", "#8C7350", "#B99B63", "#5C4E36", "#E0CFA5"];
+const TONES = ["#C9A96A", "#E6D3A7", "#8F7443", "#D7BB82", "#A98D5B", "#6E5B38", "#F0E2C0", "#B89B68"];
 
 export function tone(i) { return TONES[i % TONES.length]; }
 
@@ -42,7 +42,7 @@ export function renderHero(state) {
 
 export function renderSeal(state) {
   const CX = 280, CY = 210, R = 150, C = 2 * Math.PI * R;
-  let arcs = "", nodes = "", labels = "";
+  let arcs = "", echoArcs = "", nodes = "", labels = "";
 
   if (state && state.totalUnitsMicro > 0) {
     const pcts = M.displayPercentsBp2(state);
@@ -52,41 +52,54 @@ export function renderSeal(state) {
     state.members.forEach((m, i) => {
       const frac = m.unitsMicro / state.totalUnitsMicro;
       const len = Math.max(frac * C - gap, 1.5);
-      arcs += `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${tone(i)}" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-acc).toFixed(2)}" transform="rotate(-90 ${CX} ${CY})"/>`;
+      const dash = `stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-acc).toFixed(2)}" transform="rotate(-90 ${CX} ${CY})"`;
+      arcs += `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${tone(i)}" stroke-width="2.5" stroke-linecap="round" ${dash}/>`;
+      echoArcs += `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${tone(i)}" stroke-width="3.5" stroke-linecap="round" ${dash}/>`;
       const midFrac = (acc + (frac * C) / 2) / C;
       const a = -Math.PI / 2 + midFrac * 2 * Math.PI;
       const nx = CX + R * Math.cos(a), ny = CY + R * Math.sin(a);
       const initial = esc(m.name.trim().charAt(0).toUpperCase());
-      nodes += `<circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="13" fill="#FFFFFF" stroke="${tone(i)}" stroke-width="1.3"/>
+      nodes += `<circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="13" fill="#14171D" stroke="${tone(i)}" stroke-width="1.3"/>
         <text x="${nx.toFixed(1)}" y="${(ny + 4).toFixed(1)}" text-anchor="middle" font-family="Fraunces,serif" font-size="12" fill="${tone(i)}">${initial}</text>`;
       const lx = CX + (R + 34) * Math.cos(a), ly = CY + (R + 34) * Math.sin(a);
       const anchor = Math.cos(a) > 0.3 ? "start" : Math.cos(a) < -0.3 ? "end" : "middle";
       const dy = Math.sin(a) < -0.85 ? -6 : Math.sin(a) > 0.85 ? 12 : 0;
-      labels += `<g class="seal-label"><text x="${lx.toFixed(1)}" y="${(ly - 3 + dy).toFixed(1)}" text-anchor="${anchor}" font-size="12.5" font-weight="500" fill="#1C1A17">${esc(m.name)}</text>
-        <text x="${lx.toFixed(1)}" y="${(ly + 13 + dy).toFixed(1)}" text-anchor="${anchor}" font-size="12.5" fill="#8A6B3B">${M.fmtPctBp2(pcts[i])}</text></g>`;
+      labels += `<g class="seal-label"><text x="${lx.toFixed(1)}" y="${(ly - 3 + dy).toFixed(1)}" text-anchor="${anchor}" font-size="12.5" font-weight="500" fill="#ECE7DC">${esc(m.name)}</text>
+        <text x="${lx.toFixed(1)}" y="${(ly + 13 + dy).toFixed(1)}" text-anchor="${anchor}" font-size="12.5" fill="#C9A96A">${M.fmtPctBp2(pcts[i])}</text></g>`;
       acc += frac * C;
     });
   }
 
   const mark = `
     <g transform="translate(${CX} ${CY})" aria-hidden="true">
-      <rect x="-9" y="-9" width="18" height="18" fill="none" stroke="#B08D55" stroke-width="1"/>
-      <rect x="-9" y="-9" width="18" height="18" fill="none" stroke="#B08D55" stroke-width="1" transform="rotate(45)"/>
-      <circle r="2" fill="#B08D55"/>
+      <rect x="-9" y="-9" width="18" height="18" fill="none" stroke="#C9A96A" stroke-width="1"/>
+      <rect x="-9" y="-9" width="18" height="18" fill="none" stroke="#C9A96A" stroke-width="1" transform="rotate(45)"/>
+      <circle r="2" fill="#C9A96A"/>
     </g>`;
   const center = state
-    ? `${mark}<text x="${CX}" y="${CY + 34}" text-anchor="middle" font-size="13" fill="#6F6A61">${state.members.length} member${state.members.length === 1 ? "" : "s"}</text>`
-    : `${mark}<text x="${CX}" y="${CY + 34}" text-anchor="middle" font-size="13" fill="#A29C93">Not yet established</text>`;
+    ? `${mark}<text x="${CX}" y="${CY + 34}" text-anchor="middle" font-size="13" fill="#A8A296">${state.members.length} member${state.members.length === 1 ? "" : "s"}</text>`
+    : `${mark}<text x="${CX}" y="${CY + 34}" text-anchor="middle" font-size="13" fill="#938D81">Not yet established</text>`;
 
   el("seal").innerHTML = `
-    <svg viewBox="0 0 560 420" role="img" aria-label="Family seal: member ownership shares drawn as arcs of one ring">
-      <circle class="seal-spin" cx="${CX}" cy="${CY}" r="${R + 13}" fill="none" stroke="#B08D55" stroke-width="6" stroke-dasharray="1 13.34" opacity=".25"/>
-      <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="#EAE6DE" stroke-width="2.5"/>
-      ${arcs}
-      <circle cx="${CX}" cy="${CY}" r="${R - 40}" fill="none" stroke="#B08D55" stroke-width=".6" opacity=".45"/>
-      <circle cx="${CX}" cy="${CY}" r="${R - 45}" fill="none" stroke="#B08D55" stroke-width=".5" opacity=".22"/>
-      ${nodes}${labels}${center}
-    </svg>`;
+    <div class="gyro"><div class="gyro-idle">
+      <div class="gyro-glow" aria-hidden="true"></div>
+      <div class="gyro-echo" aria-hidden="true">
+        <svg viewBox="0 0 560 420">
+          <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="#262B33" stroke-width="3.5"/>
+          ${echoArcs}
+        </svg>
+      </div>
+      <div class="gyro-main">
+        <svg viewBox="0 0 560 420" role="img" aria-label="Family seal: member ownership shares drawn as arcs of one ring">
+          <circle class="seal-spin" cx="${CX}" cy="${CY}" r="${R + 13}" fill="none" stroke="#C9A96A" stroke-width="6" stroke-dasharray="1 13.34" opacity=".2"/>
+          <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="#262B33" stroke-width="2.5"/>
+          ${arcs}
+          <circle cx="${CX}" cy="${CY}" r="${R - 40}" fill="none" stroke="#8F7443" stroke-width=".6" opacity=".5"/>
+          <circle cx="${CX}" cy="${CY}" r="${R - 45}" fill="none" stroke="#8F7443" stroke-width=".5" opacity=".25"/>
+          ${nodes}${labels}${center}
+        </svg>
+      </div>
+    </div></div>`;
 }
 
 // ---------- stats ----------
@@ -169,24 +182,26 @@ export function renderHistory(history, fxRate, editMode) {
   const ys = (v) => Ht - padB - ((v - min) / (max - min)) * (Ht - padT - padB);
 
   let s = `<defs><linearGradient id="au" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="#B08D55" stop-opacity=".14"/><stop offset="1" stop-color="#B08D55" stop-opacity="0"/></linearGradient></defs>`;
+    <stop offset="0" stop-color="#C9A96A" stop-opacity=".18"/><stop offset="1" stop-color="#C9A96A" stop-opacity="0"/></linearGradient>
+    <filter id="lineglow" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="4"/></filter></defs>`;
   for (let g = 0; g <= 4; g++) {
     const v = max - ((max - min) * g) / 4, gy = ys(v);
-    s += `<line x1="${padL}" x2="${W - padR}" y1="${gy.toFixed(1)}" y2="${gy.toFixed(1)}" stroke="#EFEBE3" stroke-width="1"/>
-      <text x="${padL - 10}" y="${(gy + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="#A29C93">$${Math.round(v).toLocaleString("en-US")}</text>`;
+    s += `<line x1="${padL}" x2="${W - padR}" y1="${gy.toFixed(1)}" y2="${gy.toFixed(1)}" stroke="#20242C" stroke-width="1"/>
+      <text x="${padL - 10}" y="${(gy + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="#938D81">$${Math.round(v).toLocaleString("en-US")}</text>`;
   }
   const pts = H.map((h, i) => `${xs(i).toFixed(1)},${ys(h.valueCents / 100).toFixed(1)}`);
   if (H.length > 1) {
     s += `<path d="M${xs(0).toFixed(1)},${Ht - padB} L${pts.join(" L")} L${xs(H.length - 1).toFixed(1)},${Ht - padB} Z" fill="url(#au)"/>
-      <polyline points="${pts.join(" ")}" fill="none" stroke="#8A6B3B" stroke-width="2"/>`;
+      <polyline points="${pts.join(" ")}" fill="none" stroke="#C9A96A" stroke-width="3" opacity=".45" filter="url(#lineglow)"/>
+      <polyline points="${pts.join(" ")}" fill="none" stroke="#C9A96A" stroke-width="2"/>`;
   }
   const step = Math.max(1, Math.ceil(H.length / 8));
   H.forEach((h, i) => {
     const X = xs(i), Y = ys(h.valueCents / 100);
-    s += `<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="3.4" fill="#FFFFFF" stroke="#8A6B3B" stroke-width="1.6"><title>${h.date} · ${M.fmtUSD(h.valueCents)}</title></circle>`;
-    if (H.length <= 8) s += `<text x="${X.toFixed(1)}" y="${(Y - 12).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="500" fill="#1C1A17">$${Math.round(h.valueCents / 100).toLocaleString("en-US")}</text>`;
+    s += `<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="3.4" fill="#0B0D11" stroke="#C9A96A" stroke-width="1.6"><title>${h.date} · ${M.fmtUSD(h.valueCents)}</title></circle>`;
+    if (H.length <= 8) s += `<text x="${X.toFixed(1)}" y="${(Y - 12).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="500" fill="#ECE7DC">$${Math.round(h.valueCents / 100).toLocaleString("en-US")}</text>`;
     if (i % step === 0 || i === H.length - 1) {
-      s += `<text x="${X.toFixed(1)}" y="${Ht - padB + 20}" text-anchor="middle" font-size="10.5" fill="#A29C93">${shortDate(h.date)}</text>`;
+      s += `<text x="${X.toFixed(1)}" y="${Ht - padB + 20}" text-anchor="middle" font-size="10.5" fill="#938D81">${shortDate(h.date)}</text>`;
     }
   });
   svgHost.innerHTML = `<svg viewBox="0 0 ${W} ${Ht}" role="img" aria-label="Portfolio value over time">${s}</svg>`;

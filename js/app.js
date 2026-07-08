@@ -11,6 +11,7 @@ import * as M from "./model.js";
 import * as R from "./render.js";
 import { DEMO, OWNER_EMAIL } from "./config.js";
 import { FirestoreStore, MemoryStore } from "./store.js";
+import { initTilt } from "./tilt.js";
 
 let store = null;
 let snap = null;      // latest raw snapshot from the store
@@ -392,5 +393,6 @@ export async function boot({ edit }) {
   }
 
   if (DEMO) document.querySelectorAll("[data-demo-pill]").forEach((n) => { n.hidden = false; });
+  initTilt();
   store.subscribe(onSnap);
 }
