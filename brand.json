@@ -1,86 +1,83 @@
 {
-  "name": "Albassam — Private Family Office",
-  "tagline": "Albassam",
-  "description": "A private family office ledger — lacquered obsidian scene, one gold gyroscope, editorial serif numerals, plates with real depth. v3 'The Instrument' (2026-07-09); supersedes the v2 paper-light system.",
+  "name": "Albassam · Falaj",
+  "tagline": "One spring. Every share.",
+  "description": "Aziz's private family office: the family's money as one spring whose water reaches each member by their share. v4 'Falaj' (2026-09-28): a scroll-scrubbed hero film of an Arabian falaj channel, a deep-water canvas sampled from the footage, and a dividend-salary calculator (the gate). Supersedes v3 'The Instrument'.",
   "sourceUrl": "https://azezalbassam.github.io/albassam-office",
   "logo": {
     "primary": "logos/header.svg",
     "alternates": [
       "logos/favicon.svg"
     ],
-    "notes": "One mark in two weights: logos/header.svg is the khatam seal lockup (two rotated 18×18 squares + a 2r center dot, gold #C9A96A stroke) as shipped in the topbar <svg>. logos/favicon.svg is the simplified two-square favicon (no center dot) matching the inline data-URI <link rel=\"icon\">. No raster logo, no apple-touch-icon, no og:image — the page ships meta name=\"robots\" content=\"noindex\" and isn't meant to be socially shared."
+    "notes": "Logo A, 'the channel': one stroke from a spring that splits into three branches ending in three basins, inside a rounded square. Limestone strokes, spring-water basins. It is the fund model drawn: one pool, every share. No raster logo; the site is noindex."
   },
   "colors": [
     {
       "role": "background",
-      "hex": "#0B0D11",
-      "oklch": "oklch(15.9% 0.009 264.3)",
-      "name": "Obsidian scene",
-      "usage": "page ground (from --scene; a fixed radial lift to #141821 at top center gives the scene depth; fixed 5% SVG grain overlay)"
+      "hex": "#12312E",
+      "oklch": "oklch(28.9% 0.037 186.9)",
+      "name": "Deep water",
+      "usage": "page canvas, sampled from the deepest shadow of the hero's final frame (#13332E); a slow caustic shimmer layer and faint light glints drift over it"
     },
     {
       "role": "surface",
-      "hex": "#14171D",
-      "oklch": "oklch(20.4% 0.013 264.2)",
-      "name": "Plate",
-      "usage": "cards/panels as vertical lacquer gradients #1A1E25→#14171D with 1px #262B33 hairline and inner top-light rgba(255,235,200,.07) (from --plate/--plate-2)"
+      "hex": "#183F3A",
+      "oklch": "oklch(33.8% 0.045 184.1)",
+      "name": "Shade pool",
+      "usage": "panels, payslips, the burn card: vertical gradients #1D4842 to #183F3A with a 1px rgba(237,230,216,.10) hairline"
     },
     {
       "role": "foreground",
-      "hex": "#ECE7DC",
-      "oklch": "oklch(92.9% 0.016 86.4)",
-      "name": "Ivory",
-      "usage": "body text and figures (from --ink; secondary #A8A296, faint #938D81)"
+      "hex": "#EDE6D8",
+      "oklch": "oklch(92.7% 0.020 84.6)",
+      "name": "Limestone",
+      "usage": "body text, headings, figures"
     },
     {
       "role": "muted",
-      "hex": "#A8A296",
-      "oklch": "oklch(71.4% 0.018 84.6)",
-      "name": "Ink 60",
-      "usage": "secondary text — labels, captions (from --ink-2; faint tier --ink-3 #938D81 for hints and chart axes)"
+      "hex": "#BFAE92",
+      "oklch": "oklch(75.8% 0.043 80.2)",
+      "name": "Sandstone",
+      "usage": "secondary text and subtitles (6.4:1 on the canvas); faint tier #A89A82 (5.0:1) for labels and chart axes"
     },
     {
       "role": "border",
-      "hex": "#262B33",
-      "oklch": "oklch(28.8% 0.016 259.8)",
+      "hex": "#2A4D48",
+      "oklch": "oklch(39.2% 0.042 184.0)",
       "name": "Hair",
-      "usage": "hairlines, dividers, plate edges (from --hair; softer #1E232B between rows)"
+      "usage": "hairlines and dividers, written as rgba(237,230,216,.10) and .20 over the canvas"
     },
     {
       "role": "accent",
-      "hex": "#C9A96A",
-      "oklch": "oklch(74.9% 0.090 83.5)",
-      "name": "Gold",
-      "usage": "the gyroscope, percentages, ledger tags, gold-faced primary buttons, chart line (from --gold; pale #E6D3A7, deep #8F7443, tint rgba(201,169,106,.12))"
+      "hex": "#7FD6C4",
+      "oklch": "oklch(81.6% 0.089 179.2)",
+      "name": "Spring water",
+      "usage": "the one accent: CTAs, the gate, basin amounts, focus rings, chart lines. Rare doses only"
     },
     {
       "role": "accent-secondary",
-      "hex": "#D96C57",
-      "oklch": "oklch(65.5% 0.141 32.3)",
-      "name": "Terracotta / Loss",
-      "usage": "negative figures and destructive actions only (from --loss; tint rgba(217,108,87,.13); never decorative). Gains use emerald #5FB48A with tint rgba(95,180,138,.13), equally rationed."
+      "hex": "#E59A7E",
+      "oklch": "oklch(75.4% 0.099 41.3)",
+      "name": "Clay",
+      "usage": "losses, US tax, zakat deductions, destructive actions only (6.1:1 on the canvas). Gains use #93D3A8"
     }
   ],
   "typography": {
     "display": {
-      "family": "Fraunces",
+      "family": "Newsreader",
       "fallbacks": [
         "Georgia",
-        "Times New Roman",
         "serif"
       ],
       "weights": [
-        300,
         400,
         500
       ],
-      "googleFontsUrl": "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&display=swap"
+      "googleFontsUrl": "https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap"
     },
     "body": {
-      "family": "Geist",
+      "family": "Hanken Grotesk",
       "fallbacks": [
         "-apple-system",
-        "SF Pro Text",
         "Segoe UI",
         "sans-serif"
       ],
@@ -89,7 +86,18 @@
         500,
         600
       ],
-      "googleFontsUrl": "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap"
+      "googleFontsUrl": "https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&display=swap"
+    },
+    "mono": {
+      "family": "Martian Mono",
+      "fallbacks": [
+        "ui-monospace",
+        "monospace"
+      ],
+      "weights": [
+        400
+      ],
+      "googleFontsUrl": "https://fonts.googleapis.com/css2?family=Martian+Mono:wght@400&display=swap"
     }
   },
   "voice": {
@@ -99,12 +107,12 @@
       "understated",
       "precise"
     ],
-    "tone": "Quiet-luxury and custodial rather than corporate-SaaS: the copy reads like the ledger of a family office, not a fintech product. Short, formal nouns (Registry, Ledger, Members, Portfolio history) stand in for feature names. Sentence case everywhere; no exclamation points, no growth verbs, no casual contractions in headings. English only — the Arabic subtitle from v1 was removed by the owner's decision on 2026-07-06 and must not be reintroduced.",
+    "tone": "Calm, safe, custodial, and plain. The brand speaks in the language of water: spring, share, flow, basin, gate. Sentence case, short lines, no exclamation points, no finance jargon a family member would not follow. English only (Arabic script removed by the owner on 2026-07-06 and reconfirmed on 2026-09-28). Money copy is honest: reference yields carry their date and 'not advice'; zakat modes are 'calculator modes, not a fatwa'.",
     "messagingPillars": [
-      "Albassam",
-      "Members",
-      "Portfolio history",
-      "Ledger"
+      "One spring. Every share.",
+      "Open the gate.",
+      "What each person gets.",
+      "How much would it take?"
     ],
     "vocabulary": {
       "use": [
@@ -127,36 +135,39 @@
     }
   },
   "imagery": {
-    "style": "No photography — the identity is the 3D gyroscope seal (member ownership arcs precessing in preserve-3d with a gold underglow and echo ring), a fixed film grain, and the numbers themselves set in Fraunces.",
+    "style": "One world: an ancient Arabian falaj photographed straight down in soft early-morning light. Pale limestone, clear aquamarine water, feathered date-palm shadows. The hero film descends from the channel into a round basin; three stills continue the story (the channel splitting into three basins, the same channel in a dry season, the channel feeding a palm garden).",
     "subjects": [
-      "the geometric seal mark",
-      "financial figures set in Fraunces"
+      "the falaj channel and its basins",
+      "water as income",
+      "the palm garden as growth"
     ],
-    "treatment": "Lacquer-dark plates lit from above (inner top-light + layered black shadows), thin gold linework, one slow precession (22s) plus pointer tilt on desktop, tick ring at 300s. All motion transform/opacity, disabled under prefers-reduced-motion. Structural gradients only (scene lift, plate lacquer, chart area, gold button face).",
+    "treatment": "Top-down, calm, photoreal, generated on Higgsfield (GPT Image 2.5 stills, Seedance 2.5 video). Every asset shares the palette and light of the hero; no text or logos in imagery. Captions over footage use soft oval scrims (closest-side radial) audited at >= 3.5:1 worst-pixel contrast.",
     "avoid": [
-      "photography",
-      "human figures/faces",
-      "stock illustration",
-      "emoji or icon packs",
-      "neon glow / RGB-gamer dark mode",
-      "pure-black flat #000 backgrounds",
-      "glassmorphism"
+      "people and faces",
+      "coins, cash, charts as decoration",
+      "neon or glow effects",
+      "night scenes",
+      "a second visual world"
     ],
-    "samples": []
+    "samples": [
+      "assets/hero-poster.jpg",
+      "assets/hero-ending.jpg",
+      "assets/falaj-branch.jpg",
+      "assets/falaj-dry.jpg",
+      "assets/falaj-grove.jpg"
+    ]
   },
   "layout": {
-    "radius": "18px cards / 9–10px controls / 999px pills",
-    "borderWeight": "1px",
-    "spacing": "4px base unit; 16–24px component padding; 56–72px section rhythm",
+    "radius": "14px panels / 9px fields / 999px buttons and pills",
+    "borderWeight": "1px hairlines at 10-20% limestone",
+    "spacing": "sections 72-128px apart; 20px to 6vw side gutters; max width 1280px",
     "postureRules": [
-      "Left-aligned product topbar (gold khatam + 'Albassam · Family office' in Fraunces, status pills right).",
-      "Asymmetric hero: holdings figure left in HTML type (Fraunces 300 with a soft glow text-shadow), the 3D gyroscope right; stacks centered on mobile. The value never renders inside the seal SVG.",
-      "The gyroscope is the only theatre: three preserve-3d layers (underglow −80px, echo −42px, crisp SVG), ±7° precession over 22s, pointer tilt via js/tilt.js on fine pointers only.",
-      "Stats are one segmented plaque (single plate, hairline-divided cells), not floating boxes.",
-      "Sentence-case Fraunces headings with muted one-line subtitles; the hero eyebrow is the only tracked-caps element.",
-      "Semantic color rationed: gold = brand, emerald #5FB48A gains only, terracotta #D96C57 losses only — never decorative.",
-      "Motion: precession + tilt, one hero entrance (rise/settle), hover lift on plates, active scale(0.98) — nothing else; cubic-bezier(0.22,1,0.36,1); fully disabled under prefers-reduced-motion.",
-      "Buttons: gold-faced primary with dark ink text, plate-quiet, terracotta-ghost danger; gold focus rings on all interactive elements."
+      "The hero is a pinned 400vh scroll-scrubbed film (Tier 1, one 6-second shot) with three caption bands; phones and reduced motion get a composed still hero over the final frame.",
+      "The signature element is the gate: a wooden sluice gate that lifts with the blended yield while water flows down branching channels into one basin per member; the basin pools grow with each person's monthly salary.",
+      "No two adjacent sections share a layout skeleton: gate (interactive), payslips, mad-lib sentence, split text/bars, rows, image+controls, chart, split card, comparison rows, registry panels, member rows, history line, ledger list.",
+      "The accent (spring water) appears only on actions, the gate, salary figures, focus rings and chart lines. Clay marks losses and deductions only.",
+      "Motion: the scrubbed film, one entrance per section (rise with a short stagger that retires), the slow environment layer, a water line drawing down the left gutter, basin ripples. Transform and opacity only. Everything pinned under reduced motion.",
+      "The office is private: nothing reads data before the owner's Google sign-in; Firestore rules enforce it."
     ]
   }
 }

@@ -156,7 +156,7 @@ export function deposit(state, memberId, amountCents) {
   assertCents(amountCents);
   if (amountCents <= 0) throw new ModelError('Deposit must be above zero.');
   if (state.marketValueCents <= 0 || state.totalUnitsMicro <= 0) {
-    throw new ModelError('Portfolio value is zero — revalue it above zero before recording deposits.');
+    throw new ModelError('The pool is at zero. Revalue it above zero before recording deposits.');
   }
   const s = clone(state);
   const m = findMember(s, memberId);
@@ -262,7 +262,7 @@ export function removeMemberReassign(state, memberId) {
   const s = clone(state);
   const m = findMember(s, memberId);
   const others = s.members.filter((x) => x.id !== memberId);
-  if (!others.length) throw new ModelError('Cannot reassign — no remaining members. Redeem instead.');
+  if (!others.length) throw new ModelError("There's no one left to reassign to. Pay out instead.");
   const val = memberValueCents(s, memberId);
   const shares = allocateProportional(m.unitsMicro, others.map((o) => o.unitsMicro));
   others.forEach((o, i) => { o.unitsMicro += shares[i]; });
@@ -308,7 +308,7 @@ export function reverseEntry(state, entry) {
     const units = entry.unitsDeltaMicro;
     if (!Number.isInteger(units) || units <= 0) throw new ModelError("This record carries no unit delta to reverse.");
     if (m.unitsMicro < units) {
-      throw new ModelError(`${m.name} now holds less than this movement issued — record a withdrawal instead.`);
+      throw new ModelError(`${m.name} now holds less than this movement issued. Record a withdrawal instead.`);
     }
     const mvAfter = s.marketValueCents - entry.amountCents;
     if (mvAfter < 0 || (mvAfter === 0 && s.totalUnitsMicro - units > 0)) {

@@ -216,7 +216,7 @@ t('reverse deposit blocked when member no longer holds those units', () => {
   const dep = M.deposit(st, st.members[1].id, 500000);
   const bId = dep.state.members[1].id;
   const emptied = M.withdraw(dep.state, bId, M.maxWithdrawableCents(dep.state, bId)).state;
-  throws(() => M.reverseEntry(emptied, { type: 'deposit', memberId: bId, amountCents: 500000, unitsDeltaMicro: dep.entry.unitsDeltaMicro }), 'record a withdrawal');
+  throws(() => M.reverseEntry(emptied, { type: 'deposit', memberId: bId, amountCents: 500000, unitsDeltaMicro: dep.entry.unitsDeltaMicro }), 'Record a withdrawal');
 });
 t('reverse member-added removes the member when it empties them', () => {
   let st = M.found([{ name: 'A', valueCents: 10000000, contributedCents: 10000000 }]).state;

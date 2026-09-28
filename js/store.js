@@ -27,12 +27,13 @@ export class FirestoreStore {
     this.fs = fs;
     this.app = initializeApp(firebaseConfig);
     this.db = fs.getFirestore(this.app);
-    this.parts = { config: undefined, members: undefined, history: undefined, ledger: undefined };
+    this.parts = { config: undefined, members: undefined, history: undefined, ledger: undefined, plan: undefined };
     this.subscribers = [];
   }
 
   officeRef() { return this.fs.doc(this.db, NS, OFFICE_DOC); }
   colRef(name) { return this.fs.collection(this.db, NS, OFFICE_DOC, name); }
+  planRef() { return this.fs.doc(this.db, NS, OFFICE_DOC, "plan", "current"); }
 
   subscribe(cb) {
     this.subscribers.push(cb);
@@ -41,6 +42,8 @@ export class FirestoreStore {
     const push = (key, val) => { this.parts[key] = val; this.emit(); };
     this.unsubs = [
       onSnapshot(this.officeRef(), (d) => push("config", d.exists() ? d.data() : null),
+        (e) => this.fail(e)),
+      onSnapshot(this.planRef(), (d) => push("plan", d.exists() ? d.data() : null),
         (e) => this.fail(e)),
       onSnapshot(this.colRef("members"), (qs) => {
         push("members", qs.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -57,6 +60,13 @@ export class FirestoreStore {
     ];
   }
 
+  unsubscribeAll() {
+    (this.unsubs || []).forEach((u) => u());
+    this.unsubs = null;
+    this.subscribers = [];
+    this.parts = { config: undefined, members: undefined, history: undefined, ledger: undefined, plan: undefined };
+  }
+
   fail(e) {
     console.error("Firestore listener error", e);
     this.subscribers.forEach((cb) => cb(null, e));
@@ -64,9 +74,10 @@ export class FirestoreStore {
 
   emit() {
     const p = this.parts;
-    if (p.config === undefined || !p.members || !p.history || !p.ledger) return;
+    if (p.config === undefined || p.plan === undefined || !p.members || !p.history || !p.ledger) return;
     const snap = {
       config: p.config,
+      plan: p.plan,
       members: [...p.members].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0) || a.name.localeCompare(b.name)),
       history: p.history,
       ledger: p.ledger,
@@ -121,16 +132,32 @@ export class FirestoreStore {
     await deleteDoc(doc(this.colRef("ledger"), id));
   }
 
+  async savePlan(plan) {
+    await this.fs.setDoc(this.planRef(), plan);
+  }
+
   // Full restore from a backup file: wipe namespace, rewrite.
+  // Every ledger entry (the live list only holds the newest 300).
+  async fullLedger() {
+    const { getDocs, query, orderBy } = this.fs;
+    const qs = await getDocs(query(this.colRef("ledger"), orderBy("at", "desc")));
+    return qs.docs.map((d) => { const x = d.data(); return { id: d.id, ...x, at: undefined, atMs: x.at && x.at.toMillis ? x.at.toMillis() : 0 }; });
+  }
+
+  // Full restore, all or nothing: the deletes and the new documents go in
+  // ONE batch, so a failure leaves the office exactly as it was. The file
+  // was validated (and whitelisted) by the caller before we get here.
   async importAll(data) {
     const { writeBatch, doc, getDocs, serverTimestamp, Timestamp } = this.fs;
-    const wipe = writeBatch(this.db);
+    const dels = [];
     for (const col of ["members", "history", "ledger"]) {
       const qs = await getDocs(this.colRef(col));
-      qs.docs.forEach((d) => wipe.delete(d.ref));
+      qs.docs.forEach((d) => dels.push(d.ref));
     }
-    await wipe.commit();
+    const ops = dels.length + 1 + data.members.length + data.history.length + data.ledger.length + (data.plan ? 1 : 0) + 1;
+    if (ops > 500) throw new Error(`This restore needs ${ops} writes; the limit for one safe step is 500. Nothing was changed.`);
     const b = writeBatch(this.db);
+    dels.forEach((ref) => b.delete(ref));
     b.set(this.officeRef(), { ...data.config, updatedAt: serverTimestamp() });
     for (const m of data.members) {
       const { id, ...rest } = m;
@@ -141,6 +168,7 @@ export class FirestoreStore {
       const { id, atMs, ...rest } = l;
       b.set(doc(this.colRef("ledger")), { ...rest, at: Timestamp.fromMillis(atMs || Date.now()) });
     }
+    if (data.plan) b.set(this.planRef(), data.plan);
     b.set(doc(this.colRef("ledger")), {
       type: "import", amountCents: 0, unitsDeltaMicro: 0,
       note: `backup restored (${data.members.length} members, ${data.ledger.length} ledger entries)`,
@@ -190,8 +218,8 @@ export class MemoryStore {
   async init() {
     // ?demo=1&empty=1 exercises the first-run founding flow.
     this.data = new URLSearchParams(location.search).has("empty")
-      ? { config: null, members: [], history: [], ledger: [] }
-      : demoSeed();
+      ? { config: null, members: [], history: [], ledger: [], plan: null }
+      : { ...demoSeed(), plan: null };
     this.subscribers = [];
   }
 
@@ -201,6 +229,7 @@ export class MemoryStore {
     const d = this.data;
     const snap = {
       config: d.config ? { ...d.config } : null,
+      plan: d.plan ? JSON.parse(JSON.stringify(d.plan)) : null,
       members: d.members.map((m) => ({ ...m })).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)),
       history: [...d.history].sort((a, b) => a.date.localeCompare(b.date)),
       ledger: [...d.ledger].sort((a, b) => b.atMs - a.atMs),
@@ -227,6 +256,11 @@ export class MemoryStore {
     this.emit();
   }
 
+  async savePlan(plan) {
+    this.data.plan = JSON.parse(JSON.stringify(plan));
+    this.emit();
+  }
+
   async upsertHistory(date, valueCents, silent) {
     const f = this.data.history.find((h) => h.date === date);
     if (f) f.valueCents = valueCents;
@@ -239,12 +273,17 @@ export class MemoryStore {
     this.emit();
   }
 
+  async fullLedger() {
+    return [...this.data.ledger].sort((a, b) => b.atMs - a.atMs).map((l) => ({ ...l }));
+  }
+
   async importAll(data) {
     this.data = {
       config: { ...data.config },
       members: data.members.map((m) => ({ ...m })),
       history: data.history.map((h) => ({ ...h, id: h.date })),
       ledger: data.ledger.map((l) => ({ ...l })),
+      plan: data.plan || this.data.plan || null,
     };
     this.data.ledger.push({
       id: "imp" + Date.now(), type: "import", amountCents: 0, unitsDeltaMicro: 0,
