@@ -23,8 +23,9 @@ colors:
 
 Aziz's private family office. The family's money is one spring; the falaj (the old
 Arabian water channel) carries its water to every member by their share. The site
-is a scroll-scrubbed film of that channel, then a calculator (the gate) that turns
-the pool into each person's monthly salary. v4 (2026-09-28); supersedes v3.
+is a scroll-scrubbed film of that channel, then one plain table of who owns what.
+v4.1 (2026-10-07): the dividend calculator was removed at Aziz's request; keep it
+simple. Supersedes v4 (2026-09-28) and v3.
 
 ## Color Palette
 
@@ -35,11 +36,10 @@ the pool into each person's monthly salary. v4 (2026-09-28); supersedes v3.
 | foreground | Limestone | `#EDE6D8` | text and figures |
 | muted | Sandstone | `#BFAE92` | secondary text (6.4:1); faint `#A89A82` (5.0:1) for labels |
 | border | Hair | `rgba(237,230,216,.10)` / `.20` | hairlines, field borders |
-| accent | Spring water | `#7FD6C4` | actions, the gate, salary figures, focus, chart lines; rare doses |
-| accent-secondary | Clay | `#E59A7E` | losses, US tax, zakat deductions, destructive actions only |
+| accent | Spring water | `#7FD6C4` | actions, share figures, share previews, focus; rare doses |
+| accent-secondary | Clay | `#E59A7E` | losses, money out, errors, destructive actions only |
 
-Gains: `#93D3A8`. Water fills in UI: `#2E7A6E` (pool), `#1E5A51` (deep). Stone:
-`#CDBB9C` (gate posts, basin rims, the "spend it" line).
+Gains: `#93D3A8`.
 
 ## Typography
 
@@ -53,8 +53,7 @@ Gains: `#93D3A8`. Water fills in UI: `#2E7A6E` (pool), `#1E5A51` (deep). Stone:
 One world only: the falaj seen straight down in soft early-morning light. Pale
 limestone, clear aquamarine water, feathered date-palm shadows. Assets:
 `assets/hero-scrub.mp4` (6 s, -g 8, crf 24, 1728 px, 4.8 MB), `hero-poster.jpg`,
-`hero-ending.jpg` (the static hero and og:image), `falaj-branch.jpg` (salaries),
-`falaj-dry.jpg` (if companies cut), `falaj-grove.jpg` (let it grow).
+`hero-ending.jpg` (the static hero and og:image).
 No people, no coins, no decorative charts, no text inside images.
 
 ## Layout and motion
@@ -65,13 +64,14 @@ No people, no coins, no decorative charts, no text inside images.
   oval scrims (`radial-gradient(closest-side, ...)`, box inset -48% -44%).
 - Static hero on the five gates (phones, portrait tablets, coarse portrait, landscape
   phones, reduced motion): the final frame with "One spring. Every share."
-- Signature: the gate. A sluice panel lifts with the blended yield; channels branch to
-  one basin per member; each pool scales with that member's net monthly salary.
-- Sections never repeat a skeleton back to back. Accent in rare doses. Transform and
+- Below the hero: the fund (worth today, one row per person: share with a bar, put
+  in, worth today, zakat a year, plus an Everyone row), money in and out (three
+  panels with a live "After this:" share preview), and a folded history.
+- Accent in rare doses. Transform and
   opacity only; everything pinned under reduced motion; loops pause on hidden tabs.
 
 ## Voice
 
-Calm, safe, plain. Water words (spring, share, flow, basin, gate). Sentence case, no
-exclamation points, no em dashes. English only. Money copy is honest: reference yields
-carry their date and "not advice"; zakat modes are "calculator modes, not a fatwa".
+Calm, safe, plain. Water words (spring, share). Everyday money words: put in, worth
+today, money in, money out, take money out. No finance jargon (units, NAV, redeem).
+Sentence case, no exclamation points, no em dashes. English only.

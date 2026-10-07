@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Albassam · Falaj</title>
-<meta name="description" content="A private family office. One spring, every share: the family's money as a monthly salary.">
+<meta name="description" content="A private family fund. One spring, every share: each person's share follows the money they put in.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#11302F">
 <meta property="og:title" content="Albassam · Falaj">
@@ -34,11 +34,9 @@
     <span>Albassam</span>
   </a>
   <div class="links" data-signed-in hidden>
-    <a href="#gate">The gate</a>
-    <a href="#salaries">Salaries</a>
-    <a href="#plan">Plan</a>
-    <a href="#registry">Registry</a>
-    <a href="#ledger-sec">Ledger</a>
+    <a href="#fund">The fund</a>
+    <a href="#move">Money in and out</a>
+    <a href="#ledger-sec">History</a>
   </div>
   <div class="nav-right">
     <span class="pill demo" data-demo-pill hidden>Demo, nothing is saved</span>
@@ -61,8 +59,8 @@
       <p class="display" data-split="chars">Every share gets its own water.</p>
     </div>
     <div class="band b3 center" data-a="0.70" data-b="1">
-      <p class="display" data-split="words">Here is what it pays, month by month.</p>
-      <div class="cta-row"><a class="btn" href="#gate">Open the gate</a></div>
+      <p class="display" data-split="words">Here is what each person owns.</p>
+      <div class="cta-row"><a class="btn" href="#fund">See the shares</a></div>
     </div>
 
     <svg class="ring" viewBox="0 0 48 48" aria-hidden="true">
@@ -73,8 +71,8 @@
 
     <div class="static-copy">
       <h1 class="display">One spring. Every share.</h1>
-      <p>Your family's money, as a monthly salary.</p>
-      <a class="btn" href="#gate">Open the gate</a>
+      <p>Each person's share follows the money they put in.</p>
+      <a class="btn" href="#fund">See the shares</a>
     </div>
   </div>
 </header>
@@ -95,285 +93,78 @@
 
   <div id="app" hidden>
 
-    <!-- founding (first run only) -->
-    <section class="sect" id="founding" hidden>
-      <h2 class="display">Establish the office</h2>
-      <p class="sub">Enter each founding member with the current value of their stake. Contributed capital is optional: leave it blank to use the same figure, so profit starts at zero.</p>
-      <div class="panel">
-        <div id="found-rows"></div>
-        <div class="btnrow"><button class="btn quiet" id="found-add-row">Add another member</button></div>
-        <div class="grid2 narrow">
-          <div class="field"><label for="found-fx">USD to SAR rate</label><input type="text" inputmode="decimal" id="found-fx" value="3.75"></div>
-          <div class="field"><label for="found-zakat">Zakat rate %</label><input type="text" inputmode="decimal" id="found-zakat" value="2.5"></div>
-        </div>
-        <div class="btnrow"><button class="btn" id="found-btn">Establish the office</button></div>
-        <p class="feedback" id="fb-found" role="status"></p>
-      </div>
-    </section>
-
-    <!-- ============ THE GATE (signature + the one interactive moment) ============ -->
-    <section class="sect gate-sec" id="gate" data-needs-office>
+    <!-- ============ THE FUND ============ -->
+    <section class="sect" id="fund">
       <div class="sect-head">
-        <h2 class="display">Open the gate.</h2>
-        <p class="sub">Set a yield. Watch what reaches each person.</p>
+        <h2 class="display">The fund</h2>
+        <p class="sub">Shares follow the money each person put in.</p>
       </div>
-      <div class="spring-strip" id="spring-strip"></div>
-
-      <div class="base-toggle" role="radiogroup" aria-label="Which money to measure">
-        <button role="radio" data-base="put">Money put in</button>
-        <button role="radio" data-base="now">Today's value</button>
-        <button role="radio" data-base="custom">Any amount</button>
-        <label class="custom-amt" id="custom-wrap" hidden><span class="sr-only">Amount in USD</span>$<input type="text" inputmode="decimal" id="custom-usd"></label>
-      </div>
-
-      <div class="sluice">
-        <div class="gate-col">
-          <div class="gate-readout"><span class="lbl">Yield</span><output id="yield-out" class="num">0.00%</output><span class="lbl" id="yield-net">after US tax 0.00%</span></div>
-          <div class="gate-frame" aria-hidden="true">
-            <svg viewBox="0 0 120 220" class="gate-svg">
-              <rect x="14" y="10" width="10" height="200" rx="3" class="post"/>
-              <rect x="96" y="10" width="10" height="200" rx="3" class="post"/>
-              <rect x="24" y="186" width="72" height="24" class="flowbed"/>
-              <g class="panel-g"><rect x="26" y="40" width="68" height="150" rx="4" class="gate-panel"/><path d="M34 60h52M34 80h52M34 100h52M34 120h52M34 140h52M34 160h52" class="grain"/></g>
-            </svg>
-          </div>
-          <input type="range" id="yield-range" min="0.25" max="12" step="0.05" aria-label="Blended yield, percent a year">
-          <p class="hint">Drag to lift the gate.</p>
-        </div>
-        <div class="basins-col">
-          <svg class="channels" id="channels" viewBox="0 0 600 90" preserveAspectRatio="none" aria-hidden="true"></svg>
-          <div class="basins" id="basins"></div>
-          <div class="family-total"><span>The whole family, every month</span><b id="family-total" class="num">SAR 0.00</b><span id="family-total-usd" class="usd"></span></div>
-        </div>
-      </div>
-
-      <details class="mix" id="mix">
-        <summary>Change the mix <span id="mix-summary"></span></summary>
-        <div class="mix-body">
-          <div class="mix-rows" id="mix-rows"></div>
-          <div class="mix-foot">
-            <span id="alloc-total" class="alloc-total"></span>
-            <label class="inline-field">US tax withheld <input type="text" inputmode="decimal" id="wht-us" size="4">%</label>
-          </div>
-          <p class="note">Reference yields checked on 28 Sep 2026 against issuer and exchange data. They are examples to try, not advice, and they change. US dividends to a Saudi resident lose 30% at source; there is no tax treaty.</p>
-        </div>
-      </details>
-    </section>
-
-    <!-- ============ SALARIES ============ -->
-    <section class="sect" id="salaries" data-needs-office>
-      <div class="sect-head">
-        <h2 class="display">What each person gets.</h2>
-        <p class="sub">Every month, from dividend to what lands in the account.</p>
-      </div>
-      <img class="strip-img" src="assets/falaj-branch.jpg" alt="From above, one stone water channel splitting into three and filling three round basins" loading="lazy" width="1600" height="900">
-      <div class="payslips" id="payslips"></div>
-    </section>
-
-    <!-- ============ HOW MUCH WOULD IT TAKE ============ -->
-    <section class="sect need" id="need" data-needs-office>
-      <div class="sect-head">
-        <h2 class="display">How much would it take?</h2>
-        <p class="sub">Pick a monthly amount. See the money it needs.</p>
-      </div>
-      <p class="madlib">For <select id="need-member" aria-label="Member"></select> to receive
-        <label class="inline-field">SAR <input type="text" inputmode="decimal" id="need-target" size="7" aria-label="Monthly salary in SAR"></label>
-        a month, at today's mix,</p>
-      <div class="need-out" id="need-out"></div>
-    </section>
-
-    <!-- ============ WHAT AMERICA KEEPS ============ -->
-    <section class="sect uscut" id="uscut" data-needs-office>
-      <div class="split">
+      <div class="fund-value">
         <div>
-          <h2 class="display">What America keeps.</h2>
-          <p class="sub">US dividends lose 30% before they reach you. No treaty covers Saudi residents.</p>
-          <p class="penalty" id="penalty"></p>
+          <span class="k">The fund is worth today</span>
+          <b id="fund-value" class="num">$0.00</b>
+          <span id="fund-value-sar" class="usd"></span>
         </div>
-        <div class="leak" id="leak"></div>
+        <button class="btn quiet" id="rv-open">Update what it's worth</button>
       </div>
+      <div class="shares" id="members" tabindex="-1"></div>
+      <p class="note">Zakat is 2.5% a year of what each share is worth today.</p>
     </section>
 
-    <!-- ============ ZAKAT ============ -->
-    <section class="sect" id="zakat" data-needs-office>
+    <!-- ============ MONEY IN AND OUT ============ -->
+    <section class="sect" id="move">
       <div class="sect-head">
-        <h2 class="display">Zakat, before the salary.</h2>
-        <p class="sub">Pick each person's method. These are calculator modes, not a fatwa.</p>
+        <h2 class="display">Money in and out</h2>
+        <p class="sub">You see everyone's new share before you save.</p>
       </div>
-      <div class="rate-toggle" role="radiogroup" aria-label="Zakat year">
-        <button role="radio" data-rate="hijri">Hijri year · 2.5%</button>
-        <button role="radio" data-rate="gregorian">Gregorian year · 2.5777%</button>
-      </div>
-      <div class="zakat-rows" id="zakat-rows"></div>
-      <p class="note">Sources: ZATCA individual zakat guideline (sections 3.6 and 3.9), Islamic Fiqh Academy decisions 28 and 121, AAOIFI Shari'ah Standard 35. Saudi-listed companies pay zakat through ZATCA. Paying zakat on someone's behalf needs their permission.</p>
-    </section>
-
-    <!-- ============ IF COMPANIES CUT ============ -->
-    <section class="sect cut" id="cut" data-needs-office>
-      <div class="sect-head">
-        <h2 class="display">If companies cut.</h2>
-        <p class="sub">What still arrives in a bad year.</p>
-      </div>
-      <div class="cut-layout">
-      <img src="assets/falaj-dry.jpg" alt="The same channel in a dry season: a thin thread of water still reaches a low basin" loading="lazy" width="1600" height="900">
-      <div>
-      <div class="cut-controls">
-        <label class="slider-field"><span>Saudi payers cut <output id="cut-saudi-out">30%</output></span><input type="range" id="cut-saudi" min="0" max="60" step="1"></label>
-        <label class="slider-field"><span>US payers cut <output id="cut-us-out">30%</output></span><input type="range" id="cut-us" min="0" max="60" step="1"></label>
-        <div class="chips">
-          <button class="chip-btn" data-cut-preset="29.5">Aramco 2026 · cut 29.5%</button>
-          <button class="chip-btn" data-cut-preset="26.7">SABIC H1 2026 · cut 26.7%</button>
-        </div>
-      </div>
-      <div class="floors" id="floors"></div>
-      </div>
-      </div>
-    </section>
-
-    <!-- ============ PLAN ============ -->
-    <div id="plan">
-      <section class="sect grow" id="grow" data-needs-office>
-        <div class="grow-bg" aria-hidden="true"><img src="assets/falaj-grove.jpg" alt="" loading="lazy" decoding="async" width="1400" height="788"></div>
-        <div class="sect-head">
-          <h2 class="display">Spend it, or let it grow?</h2>
-          <p class="sub">Take the salary every month, or let the dividends buy more.</p>
-        </div>
-        <div class="grow-controls">
-          <label class="field-inline">For <select id="grow-member" aria-label="Member"></select></label>
-          <label class="slider-field"><span>Years <output id="grow-years-out">10</output></span><input type="range" id="grow-years" min="1" max="30" step="1"></label>
-          <label class="slider-field"><span>Prices grow <output id="grow-g-out">3%</output> a year</span><input type="range" id="grow-g" min="0" max="10" step="0.5"></label>
-          <label class="slider-field"><span>Inflation <output id="grow-inf-out">2%</output></span><input type="range" id="grow-inf" min="0" max="8" step="0.5"></label>
-        </div>
-        <div class="grow-chart" id="grow-chart"></div>
-        <p class="grow-line" id="grow-line"></p>
-      </section>
-
-      <section class="sect burn" id="burn" data-needs-office>
-        <div class="split">
-          <div>
-            <h2 class="display">Are we eating the spring?</h2>
-            <p class="sub">If someone takes more each month than their share earns, the spring shrinks.</p>
-          </div>
-          <div class="burn-card">
-            <p class="madlib">If <select id="burn-member" aria-label="Member"></select> takes
-              <label class="inline-field">SAR <input type="text" inputmode="decimal" id="burn-allowance" size="7" aria-label="Monthly allowance in SAR"></label> a month,</p>
-            <p class="burn-out" id="burn-out"></p>
-          </div>
-        </div>
-      </section>
-
-      <section class="sect worth" id="worth" data-needs-office>
-        <div class="sect-head">
-          <h2 class="display">Worth the risk?</h2>
-          <p class="sub">The same money in Saudi government sukuk, after the same zakat, for comparison.</p>
-        </div>
-        <label class="inline-field">Government sukuk yield <input type="text" inputmode="decimal" id="sukuk-bench" size="5">%</label>
-        <p class="note">Default 5.53% is the 10-year KSA government sukuk from a single August 2026 report. Not independently verified: check today's rate and type it in.</p>
-        <div class="worth-rows" id="worth-rows"></div>
-      </section>
-    </div>
-
-    <!-- ============ REGISTRY (unchanged behaviour) ============ -->
-    <section class="sect" id="registry" data-needs-office>
-      <div class="sect-head">
-        <h2 class="display">The registry</h2>
-        <p class="sub">Record money in and out, admit members, and revalue the pool. Every action lands in the ledger.</p>
-      </div>
-      <div class="spring-stats" id="stats"></div>
-      <div class="registry">
+      <div class="actions">
         <div class="panel">
-          <h3>Record a deposit</h3>
-          <div class="field"><label for="dep-member">Member</label><select id="dep-member" data-members></select></div>
-          <div class="field"><label for="dep-amount">Amount (USD)</label><input type="text" inputmode="decimal" id="dep-amount" placeholder="25,000"></div>
-          <div class="field"><label for="dep-date">Date</label><input type="date" id="dep-date"></div>
-          <div class="btnrow"><button class="btn" id="dep-btn">Record deposit</button></div>
-          <p class="note">New units are issued at today's price per unit. Everyone else's share rescales on its own.</p>
-          <p class="feedback" id="fb-dep" role="status"></p>
-        </div>
-        <div class="panel">
-          <h3>Record a withdrawal</h3>
-          <div class="field"><label for="wd-member">Member</label><select id="wd-member" data-members></select></div>
-          <div class="field"><label for="wd-amount">Amount (USD)</label><input type="text" inputmode="decimal" id="wd-amount" placeholder="10,000"></div>
-          <div class="field"><label for="wd-date">Date</label><input type="date" id="wd-date"></div>
-          <div class="btnrow"><button class="btn danger" id="wd-btn">Record withdrawal</button></div>
-          <p class="note">It can't go above the member's balance. If you try, you'll see their limit.</p>
-          <p class="feedback" id="fb-wd" role="status"></p>
-        </div>
-        <div class="panel">
-          <h3>Admit a member</h3>
-          <div class="field"><label for="nm-name">Name</label><input type="text" id="nm-name" placeholder="Sara"></div>
-          <div class="field"><label for="nm-amount">Opening deposit (USD)</label><input type="text" inputmode="decimal" id="nm-amount" placeholder="50,000"></div>
-          <div class="btnrow"><button class="btn" id="nm-btn">Admit member</button></div>
-          <p class="note">To remove someone, use Manage on their card below.</p>
+          <h3>Add a person</h3>
+          <div class="field"><label for="nm-name">Name</label><input type="text" id="nm-name" placeholder="Dad" autocomplete="off"></div>
+          <div class="field"><label for="nm-amount">Money they put in (USD)</label><input type="text" inputmode="decimal" id="nm-amount" placeholder="500,000"></div>
+          <p class="preview" id="pv-nm" aria-live="polite"></p>
+          <div class="btnrow"><button class="btn" id="nm-btn">Add to the fund</button></div>
           <p class="feedback" id="fb-nm" role="status"></p>
         </div>
         <div class="panel">
-          <h3>Revalue the pool</h3>
-          <div class="field"><label for="rv-amount">Market value today (USD)</label><input type="text" inputmode="decimal" id="rv-amount" placeholder="15,000"></div>
-          <label class="check"><input type="checkbox" id="rv-sync" checked> Also add today to the history chart</label>
-          <div class="btnrow"><button class="btn" id="rv-btn">Revalue</button></div>
-          <p class="note">Every value, share, riyal figure, and salary updates at once. Units never change on a revaluation.</p>
-          <p class="feedback" id="fb-rv" role="status"></p>
+          <h3>Add money</h3>
+          <div class="field"><label for="dep-member">Who</label><select id="dep-member" data-members></select></div>
+          <div class="field"><label for="dep-amount">Amount (USD)</label><input type="text" inputmode="decimal" id="dep-amount" placeholder="25,000"></div>
+          <p class="preview" id="pv-dep" aria-live="polite"></p>
+          <div class="btnrow"><button class="btn" id="dep-btn">Add money</button></div>
+          <p class="feedback" id="fb-dep" role="status"></p>
         </div>
         <div class="panel">
-          <h3>Settings</h3>
-          <div class="field"><label for="st-fx">USD to SAR rate</label><input type="text" inputmode="decimal" id="st-fx"></div>
-          <div class="field"><label for="st-zakat">Zakat rate % (pool summary)</label><input type="text" inputmode="decimal" id="st-zakat"></div>
-          <div class="btnrow"><button class="btn quiet" id="st-btn">Apply</button></div>
-          <p class="feedback" id="fb-st" role="status"></p>
-        </div>
-        <div class="panel">
-          <h3>Backup</h3>
-          <div class="btnrow">
-            <button class="btn quiet" id="bk-export">Export JSON</button>
-            <button class="btn quiet" id="bk-import-btn">Import…</button>
-            <input type="file" id="bk-file" accept="application/json" hidden>
-          </div>
-          <p class="note">Export downloads everything: settings, members, history, the full ledger, and your plan. Import shows a summary and asks before replacing anything.</p>
-          <p class="feedback" id="fb-bk" role="status"></p>
+          <h3>Take money out</h3>
+          <div class="field"><label for="wd-member">Who</label><select id="wd-member" data-members></select></div>
+          <div class="field"><label for="wd-amount">Amount (USD)</label><input type="text" inputmode="decimal" id="wd-amount" placeholder="1,000"></div>
+          <p class="preview" id="pv-wd" aria-live="polite"></p>
+          <div class="btnrow"><button class="btn danger" id="wd-btn">Take money out</button></div>
+          <p class="feedback" id="fb-wd" role="status"></p>
         </div>
       </div>
     </section>
 
-    <section class="sect" id="members-sec" data-needs-office>
-      <div class="sect-head">
-        <h2 class="display">Members <span class="count" id="member-count"></span></h2>
-        <p class="sub">Each person's share of the pool, what they put in, and where it stands.</p>
-      </div>
-      <div class="members" id="members"></div>
-    </section>
-
-    <section class="sect" id="history-sec" data-needs-office>
-      <div class="sect-head">
-        <h2 class="display">The pool over time</h2>
-        <p class="sub">Add a dated value and the line redraws.</p>
-      </div>
-      <div class="panel hist-form">
-        <div class="field"><label for="hs-date">Date</label><input type="date" id="hs-date"></div>
-        <div class="field"><label for="hs-value">Value that day (USD)</label><input type="text" inputmode="decimal" id="hs-value" placeholder="15,000"></div>
-        <button class="btn" id="hs-btn">Add point</button>
-        <label class="check wide" id="hs-sync-wrap"><input type="checkbox" id="hs-sync" checked> This is today: also set it as the current value</label>
-        <p class="feedback wide" id="fb-hs" role="status"></p>
-      </div>
-      <div class="chart-card">
-        <div class="chart-wrap" id="chart"></div>
-        <div class="hist-list" id="hist-list"></div>
-      </div>
-    </section>
-
-    <section class="sect" id="ledger-sec" data-needs-office>
-      <div class="sect-head">
-        <h2 class="display">Ledger</h2>
-        <p class="sub">Every movement, recorded. Fix a mistake with the pencil; undo it with the cross.</p>
-      </div>
-      <div class="ledger" id="ledger"></div>
+    <!-- ============ HISTORY ============ -->
+    <section class="sect" id="ledger-sec">
+      <details class="fold">
+        <summary>History and backup</summary>
+        <p class="note">Every change is recorded. Fix a mistake with the pencil; undo it with the cross.</p>
+        <div class="ledger" id="ledger" tabindex="-1"></div>
+        <div class="btnrow">
+          <button class="btn quiet" id="bk-export">Download a backup</button>
+          <button class="btn quiet" id="bk-import-btn">Restore a backup…</button>
+          <input type="file" id="bk-file" accept="application/json" hidden>
+        </div>
+        <p class="feedback" id="fb-bk" role="status"></p>
+      </details>
     </section>
   </div>
 </main>
 
 <footer class="foot">
   <span>Private. Only you can open this.</span>
-  <span>Reference numbers, not investment advice. Yields change.</span>
+  <span>Shares follow the money put in.</span>
 </footer>
 <div id="modal-host"></div>
 <script type="module">

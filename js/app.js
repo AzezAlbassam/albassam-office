@@ -1,51 +1,35 @@
 // ============================================================
 // App shell. The office is private: nothing is read until the
 // owner signs in (Firestore rules enforce it; the UI follows).
-// Every state change: model (pure) -> store.commit (atomic) ->
-// realtime listeners re-render. The plan (the calculator's
-// settings) saves on its own, debounced.
+// Every change: model (pure) -> store.commit (atomic) -> realtime
+// listeners re-render. Shares follow the money put in (model.js).
 // ============================================================
 
 import * as M from "./model.js";
 import * as R from "./render.js";
-import * as C from "./calc.js";
 import { DEMO, OWNER_EMAIL } from "./config.js";
 import { FirestoreStore, MemoryStore } from "./store.js";
 import { initHero } from "./scrub.js";
-import { initCalc, renderCalc } from "./calcui.js";
 
 let store = null;
 let snap = null;
 let state = null;
-let plan = C.defaultPlan();
 let editUI = false;
 let subscribed = false;
-let lastLocalEdit = 0;
-let saveTimer = null;
 
 const $ = (id) => document.getElementById(id);
 // local calendar date (Riyadh), not UTC
 const today = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
 
+// An empty fund is a valid fund: the first "Add a person" founds it.
 function buildState(s) {
-  if (!s || !s.config) return null;
+  const c = (s && s.config) || { marketValueCents: 0, totalUnitsMicro: 0, fxRate: 3.75, zakatPct: 2.5 };
   return {
-    marketValueCents: s.config.marketValueCents,
-    totalUnitsMicro: s.config.totalUnitsMicro,
-    fxRate: s.config.fxRate,
-    zakatPct: s.config.zakatPct,
-    members: s.members,
-  };
-}
-
-function mergePlan(saved) {
-  const d = C.defaultPlan();
-  if (!saved) return d;
-  return {
-    ...d, ...saved,
-    mix: Object.fromEntries(C.BUCKETS.map((b) => [b.key, { ...d.mix[b.key], ...((saved.mix || {})[b.key] || {}) }])),
-    cutPct: { ...d.cutPct, ...(saved.cutPct || {}) },
-    members: { ...(saved.members || {}) },
+    marketValueCents: c.marketValueCents,
+    totalUnitsMicro: c.totalUnitsMicro,
+    fxRate: c.fxRate,
+    zakatPct: c.zakatPct,
+    members: s ? s.members : [],
   };
 }
 
@@ -58,20 +42,13 @@ function cleanEntry(e) {
 // ---------- rendering ----------
 
 function renderAll() {
-  const founded = !!state && state.members.length > 0;
-  document.querySelectorAll("[data-needs-office]").forEach((n) => { n.hidden = !founded; });
-  $("founding").hidden = founded || !editUI;
-  R.springStrip(state);
-  R.renderStats(state);
-  R.renderMembers(state, editUI);
-  R.renderHistory(snap ? snap.history : [], state ? state.fxRate : 3.75, editUI);
+  R.renderFund(state, editUI);
   R.renderLedger(snap ? snap.ledger : [], editUI);
   R.populateMemberSelects(state);
-  if (founded) renderCalc();
-  if (editUI && state) {
-    if (document.activeElement !== $("st-fx")) $("st-fx").value = state.fxRate;
-    if (document.activeElement !== $("st-zakat")) $("st-zakat").value = state.zakatPct;
-  }
+  $("move").hidden = !editUI;
+  $("rv-open").hidden = !editUI || !state.members.length;
+  ["dep", "wd"].forEach((k) => { $(k + "-member").closest(".panel").hidden = !state.members.length; });
+  previews();
 }
 
 function onSnap(s, err) {
@@ -86,21 +63,40 @@ function onSnap(s, err) {
   }
   snap = s;
   state = buildState(s);
-  if (Date.now() - lastLocalEdit > 2500) plan = mergePlan(s.plan);
   $("loading").hidden = true;
   $("app").hidden = false;
   renderAll();
 }
 
-function updatePlan(p) {
-  plan = p;
-  lastLocalEdit = Date.now();
-  renderCalc();
-  if (!editUI) return;
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    store.savePlan(JSON.parse(JSON.stringify(plan))).catch((e) => console.error("plan save", e));
-  }, 700);
+// ---------- live share previews ----------
+
+// Run the move on a copy of the fund and show everyone's new share
+// before anything is saved. Nothing typed yet: nothing shown.
+function preview(hostId, amountId, run, extra) {
+  const host = $(hostId);
+  const txt = $(amountId).value.trim();
+  host.classList.remove("err");
+  if (!txt || !state) { host.textContent = ""; return; }
+  try {
+    const res = run(M.parseUSDToCents(txt));
+    host.textContent = R.shareLine(res.state, res.entry.memberId) + (extra ? extra(res) : "");
+  } catch (e) {
+    host.textContent = e instanceof M.ModelError ? e.message : "";
+    host.classList.add("err");
+  }
+}
+
+function previews() {
+  preview("pv-nm", "nm-amount", (c) => M.addMember(state, $("nm-name").value || "New person", c));
+  preview("pv-dep", "dep-amount", (c) => M.deposit(state, $("dep-member").value, c));
+  preview("pv-wd", "wd-amount", (c) => M.withdraw(state, $("wd-member").value, c), (res) => {
+    const before = state.members.find((m) => m.id === res.entry.memberId);
+    const after = res.state.members.find((m) => m.id === res.entry.memberId);
+    const cut = before.netContributedCents - after.netContributedCents;
+    if (Math.abs(cut - res.entry.amountCents) <= 1) return "";
+    const pct = before.netContributedCents ? ((cut / before.netContributedCents) * 100).toFixed(1) : "0";
+    return ` ${after.name}'s put in becomes ${M.fmtUSD(after.netContributedCents)}: taking out ${pct}% of what the share is worth takes ${pct}% off the money put in too.`;
+  });
 }
 
 // ---------- modal ----------
@@ -162,80 +158,39 @@ function act(fbId, fn) {
 }
 
 function wireEditActions() {
-  ["dep-date", "wd-date", "hs-date"].forEach((id) => { if ($(id)) $(id).value = today(); });
-
-  $("dep-btn").addEventListener("click", act("fb-dep", async () => {
-    const id = $("dep-member").value;
-    if (!id) throw new M.ModelError("Add a member first.");
-    const amount = M.parseUSDToCents($("dep-amount").value);
-    const res = M.deposit(state, id, amount);
-    res.entry.dateLabel = $("dep-date").value || today();
-    await commitResult(res, "fb-dep", `${res.entry.memberName} deposited ${M.fmtUSD(amount)}.`);
-    $("dep-amount").value = "";
-  }));
-
-  $("wd-btn").addEventListener("click", act("fb-wd", async () => {
-    const id = $("wd-member").value;
-    if (!id) throw new M.ModelError("Add a member first.");
-    const amount = M.parseUSDToCents($("wd-amount").value);
-    const res = M.withdraw(state, id, amount);
-    res.entry.dateLabel = $("wd-date").value || today();
-    await commitResult(res, "fb-wd", `${res.entry.memberName} withdrew ${M.fmtUSD(amount)}.`);
-    $("wd-amount").value = "";
-  }));
+  ["nm-name", "nm-amount", "dep-member", "dep-amount", "wd-member", "wd-amount"].forEach((id) =>
+    $(id).addEventListener("input", previews));
 
   $("nm-btn").addEventListener("click", act("fb-nm", async () => {
     const amount = M.parseUSDToCents($("nm-amount").value);
     const res = M.addMember(state, $("nm-name").value, amount);
     await commitResult(res, "fb-nm", `${res.entry.memberName} joined with ${M.fmtUSD(amount)}.`);
-    $("nm-name").value = ""; $("nm-amount").value = "";
+    $("nm-name").value = ""; $("nm-amount").value = ""; previews();
   }));
 
-  $("rv-btn").addEventListener("click", act("fb-rv", async () => {
-    const v = M.parseUSDToCents($("rv-amount").value);
-    const res = M.revalue(state, v);
-    const opts = $("rv-sync").checked ? { history: { date: today(), valueCents: v } } : {};
-    await commitResult(res, "fb-rv", `Portfolio revalued to ${M.fmtUSD(v)}.`, opts);
-    $("rv-amount").value = "";
+  $("dep-btn").addEventListener("click", act("fb-dep", async () => {
+    const id = $("dep-member").value;
+    if (!id) throw new M.ModelError("Add a person first.");
+    const amount = M.parseUSDToCents($("dep-amount").value);
+    const res = M.deposit(state, id, amount);
+    await commitResult(res, "fb-dep", `${res.entry.memberName} added ${M.fmtUSD(amount)}.`);
+    $("dep-amount").value = ""; previews();
   }));
 
-  $("st-btn").addEventListener("click", act("fb-st", async () => {
-    const fx = parseFloat($("st-fx").value);
-    const zk = parseFloat($("st-zakat").value);
-    const res = M.updateSettings(state, {
-      fxRate: Number.isFinite(fx) && fx !== state.fxRate ? fx : null,
-      zakatPct: Number.isFinite(zk) && zk !== state.zakatPct ? zk : null,
-    });
-    await commitResult(res, "fb-st", "Settings updated.");
+  $("wd-btn").addEventListener("click", act("fb-wd", async () => {
+    const id = $("wd-member").value;
+    if (!id) throw new M.ModelError("Add a person first.");
+    const amount = M.parseUSDToCents($("wd-amount").value);
+    const res = M.withdraw(state, id, amount);
+    await commitResult(res, "fb-wd", `${res.entry.memberName} took out ${M.fmtUSD(amount)}.`);
+    $("wd-amount").value = ""; previews();
   }));
 
-  $("hs-btn").addEventListener("click", act("fb-hs", async () => {
-    const date = $("hs-date").value;
-    if (!date) throw new M.ModelError("Pick a date.");
-    const v = M.parseUSDToCents($("hs-value").value);
-    if (v <= 0) throw new M.ModelError("Value must be above zero.");
-    if ($("hs-sync").checked) {
-      const res = M.revalue(state, v);
-      await commitResult(res, "fb-hs", `Recorded ${date} and set as current value.`, { history: { date, valueCents: v } });
-    } else {
-      await store.upsertHistory(date, v);
-      R.feedback("fb-hs", `Recorded ${date}: ${M.fmtUSD(v)}.`, false);
-    }
-    $("hs-value").value = "";
-  }));
-
-  $("hs-date").addEventListener("change", () => {
-    $("hs-sync-wrap").style.display = $("hs-date").value === today() ? "" : "none";
-    if ($("hs-date").value !== today()) $("hs-sync").checked = false;
-  });
+  $("rv-open").addEventListener("click", revalueFund);
 
   document.addEventListener("click", (e) => {
     const manage = e.target.closest("[data-manage]");
     if (manage) manageMember(manage.dataset.manage);
-    const histDel = e.target.closest("[data-hist-del]");
-    if (histDel) deleteHistoryPoint(histDel.dataset.histDel);
-    const histEdit = e.target.closest("[data-hist-edit]");
-    if (histEdit) editHistoryPoint(histEdit.dataset.histEdit);
     const ledgerDel = e.target.closest("[data-ledger-del]");
     if (ledgerDel) deleteLedgerEntry(ledgerDel.dataset.ledgerDel);
     const ledgerEdit = e.target.closest("[data-ledger-edit]");
@@ -245,10 +200,25 @@ function wireEditActions() {
   $("bk-export").addEventListener("click", exportBackup);
   $("bk-import-btn").addEventListener("click", () => $("bk-file").click());
   $("bk-file").addEventListener("change", importBackup);
+}
 
-  $("found-add-row").addEventListener("click", () => addFoundingRow());
-  $("found-btn").addEventListener("click", act("fb-found", establishOffice));
-  addFoundingRow(); addFoundingRow();
+async function revalueFund() {
+  const prefill = (state.marketValueCents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const { act: a, value } = await modalAsk(`<h3>What is the fund worth today?</h3>
+    <p>Everyone's worth and zakat follow the new figure. Shares don't change.</p>
+    <div class="field"><label for="modal-input">Worth today (USD)</label>
+    <input type="text" inputmode="decimal" id="modal-input" value="${prefill}"></div>
+    <div class="btnrow"><button class="btn" data-act="save">Save</button>
+    <button class="btn quiet" data-act="">Cancel</button></div>`);
+  if (a !== "save") return;
+  try {
+    const v = M.parseUSDToCents(value);
+    const r = M.revalue(state, v);
+    await store.commit(r.state, cleanEntry(r.entry), { history: { date: today(), valueCents: v } });
+  } catch (e) {
+    await modal(`<h3>Couldn't save that</h3><p>${R.esc(e.message)}</p>
+      <div class="btnrow"><button class="btn quiet" data-act="">Close</button></div>`);
+  }
 }
 
 async function manageMember(id) {
@@ -258,25 +228,27 @@ async function manageMember(id) {
   try {
     if (balance === 0 && m.unitsMicro === 0) {
       const actn = await modal(`<h3>Remove ${R.esc(m.name)}?</h3>
-        <p>Their balance is $0.00, so they can be removed directly. This is recorded in the ledger.</p>
-        <div class="btnrow"><button class="btn danger" data-act="zero">Remove member</button>
+        <p>Their share is worth $0.00, so they can be removed. It's recorded in the history.</p>
+        <div class="btnrow"><button class="btn danger" data-act="zero">Remove</button>
         <button class="btn quiet" data-act="">Cancel</button></div>`);
       if (actn !== "zero") return;
       const res = M.removeMemberZero(state, id);
       await store.commit(res.state, cleanEntry(res.entry), { removedMemberIds: [id] });
+      $("members").focus();
       return;
     }
-    const others = state.members.length - 1;
+    const others = state.members.filter((x) => x.id !== id && x.unitsMicro > 0).length;
     const actn = await modal(`<h3>Remove ${R.esc(m.name)}</h3>
-      <p>${R.esc(m.name)} currently holds <b>${M.fmtUSD(balance)}</b>. That value can't just disappear, so choose how to settle it. Both paths are recorded in the ledger.</p>
-      <button class="choice" data-act="redeem"><b>Redeem and pay out</b>
-        Their full ${M.fmtUSD(balance)} is recorded as a withdrawal, then the member is removed. Portfolio value decreases accordingly.</button>
-      ${others > 0 ? `<button class="choice" data-act="reassign"><b>Reassign to remaining members</b>
-        Their units are redistributed pro-rata to the other ${others} member(s). Portfolio value is unchanged.</button>` : ""}
+      <p>${R.esc(m.name)}'s share is worth <b>${M.fmtUSD(balance)}</b> today. Choose what happens to it. Either way it's recorded in the history.</p>
+      <button class="choice" data-act="redeem"><b>Pay it out</b>
+        ${R.esc(m.name)} takes out the full ${M.fmtUSD(balance)} and leaves. The fund is worth that much less.</button>
+      ${others > 0 ? `<button class="choice" data-act="reassign"><b>Give the share to the others</b>
+        The share is split between the other ${others === 1 ? "person" : others + " people"} by their shares. The fund's worth doesn't change.</button>` : ""}
       <div class="btnrow"><button class="btn quiet" data-act="">Cancel</button></div>`);
     if (!actn) return;
     const res = actn === "redeem" ? M.removeMemberRedeem(state, id) : M.removeMemberReassign(state, id);
     await store.commit(res.state, cleanEntry(res.entry), { removedMemberIds: [id] });
+    $("members").focus();
   } catch (e) {
     R.feedback("fb-nm", e.message, true);
   }
@@ -287,14 +259,21 @@ async function editLedgerEntry(id) {
   if (!l || !R.EDITABLE_TYPES.includes(l.type) || !state) return;
   const label = (R.TYPE_LABELS[l.type] || l.type).toLowerCase();
   const who = l.memberName ? `${R.esc(l.memberName)} · ` : "";
-  const newerReval = l.type === "revaluation" && snap.ledger.some((x) => x.type === "revaluation" && x.atMs > l.atMs);
+  const later = M.hasLaterMoves(snap.ledger, l);
+  if (later && l.type !== "revaluation") {
+    await modal(`<h3>This can't be corrected now</h3>
+      <p>Money has moved since this record, so changing it would shift money between people. Record new money in or out instead.</p>
+      <div class="btnrow"><button class="btn quiet" data-act="">Close</button></div>`);
+    return;
+  }
+  const newerReval = l.type === "revaluation" && later;
   const how = l.type !== "revaluation"
-    ? "The original movement is reversed exactly, then re-applied at the corrected amount. Balances follow."
+    ? "It's undone exactly, then done again at the corrected amount. Everyone's share follows."
     : newerReval
-      ? "A newer revaluation already set today's value, so only this record is corrected."
-      : "Today's pool value moves by the same difference as the correction, and this record is replaced.";
+      ? "Money has moved or the worth was updated since, so only this record changes."
+      : "Today's worth moves by the same difference, and this record is replaced.";
   const prefill = (l.amountCents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const { act, value } = await modalAsk(`<h3>Correct this ${label}</h3>
+  const { act, value } = await modalAsk(`<h3>Correct the amount (${label})</h3>
     <p>${who}currently ${M.fmtUSD(l.amountCents)}. ${how}</p>
     <div class="field"><label for="modal-input">Corrected amount (USD)</label>
     <input type="text" inputmode="decimal" id="modal-input" value="${prefill}"></div>
@@ -306,42 +285,22 @@ async function editLedgerEntry(id) {
     let res;
     if (l.type === "revaluation") {
       const target = newerReval ? state.marketValueCents : state.marketValueCents + (amount - l.amountCents);
-      if (target <= 0) throw new M.ModelError("That correction would take the pool to zero or below.");
+      if (target <= 0) throw new M.ModelError("That would take the fund's worth to zero or below.");
       res = newerReval ? { state, entry: { type: "revaluation", amountCents: amount, unitsDeltaMicro: 0 } } : M.revalue(state, target);
       res.entry.amountCents = amount;
-      res.entry.note = `amended from ${M.fmtUSD(l.amountCents)}${newerReval ? ", record only" : ""}`;
+      res.entry.note = `corrected from ${M.fmtUSD(l.amountCents)}${newerReval ? ", record only" : ""}`;
     } else {
       const rev = M.reverseEntry(state, l);
       res = l.type === "deposit"
         ? M.deposit(rev.state, l.memberId, amount)
         : M.withdraw(rev.state, l.memberId, amount);
       if (l.dateLabel) res.entry.dateLabel = l.dateLabel;
-      res.entry.note = `amended from ${M.fmtUSD(l.amountCents)}`;
+      res.entry.note = `corrected from ${M.fmtUSD(l.amountCents)}`;
     }
     await store.commit(res.state, cleanEntry(res.entry), { deleteLedgerIds: [id] });
+    $("ledger").focus();
   } catch (e) {
     await modal(`<h3>Couldn't apply the correction</h3><p>${R.esc(e.message)}</p>
-      <div class="btnrow"><button class="btn quiet" data-act="">Close</button></div>`);
-  }
-}
-
-async function editHistoryPoint(id) {
-  const h = snap.history.find((x) => x.id === id);
-  if (!h) return;
-  const prefill = (h.valueCents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const { act, value } = await modalAsk(`<h3>Edit history point</h3>
-    <p>${R.esc(h.date)}. This changes the chart only; balances and the ledger stay as they are.</p>
-    <div class="field"><label for="modal-input">Value on that date (USD)</label>
-    <input type="text" inputmode="decimal" id="modal-input" value="${prefill}"></div>
-    <div class="btnrow"><button class="btn" data-act="save">Save</button>
-    <button class="btn quiet" data-act="">Cancel</button></div>`);
-  if (act !== "save") return;
-  try {
-    const v = M.parseUSDToCents(value);
-    if (v <= 0) throw new M.ModelError("Value must be above zero.");
-    await store.upsertHistory(h.date, v);
-  } catch (e) {
-    await modal(`<h3>Couldn't save</h3><p>${R.esc(e.message)}</p>
       <div class="btnrow"><button class="btn quiet" data-act="">Close</button></div>`);
   }
 }
@@ -352,16 +311,17 @@ async function deleteLedgerEntry(id) {
   const desc = `${R.TYPE_LABELS[l.type] || R.esc(l.type)}${l.memberName ? " · " + R.esc(l.memberName) : ""}${l.amountCents ? " · " + M.fmtUSD(l.amountCents) : ""}`;
   let rev = null, revErr = null;
   if (state && ["deposit", "withdrawal", "member-added"].includes(l.type)) {
-    try { rev = M.reverseEntry(state, l); } catch (e) { revErr = e.message; }
+    if (M.hasLaterMoves(snap.ledger, l)) revErr = "money has moved since, so undoing it would shift money between people. Record new money in or out instead.";
+    else try { rev = M.reverseEntry(state, l); } catch (e) { revErr = e.message; }
   }
   try {
-    const actn = await modal(`<h3>Delete ledger record?</h3>
+    const actn = await modal(`<h3>Delete this record?</h3>
       <p><b>${desc}</b></p>
-      ${rev ? `<button class="choice" data-act="undo"><b>Undo the movement</b>
-        Reverses the exact units and amount, then deletes the record. Balances return to what they were, as if it never happened.</button>` : ""}
-      ${revErr ? `<p style="font-size:13px">This movement can't be reversed automatically: ${R.esc(revErr)}</p>` : ""}
+      ${rev ? `<button class="choice" data-act="undo"><b>Undo it</b>
+        Puts everyone's share and money back exactly as they were, as if it never happened, then deletes the record.</button>` : ""}
+      ${revErr ? `<p style="font-size:13px">This can't be undone: ${R.esc(revErr)}</p>` : ""}
       <button class="choice" data-act="del"><b>Delete the record only</b>
-        Balances and units stay exactly as they are. Only this line disappears from the ledger.</button>
+        Shares and money stay exactly as they are. Only this line disappears from the history.</button>
       <div class="btnrow"><button class="btn quiet" data-act="">Cancel</button></div>`);
     if (actn === "undo" && rev) {
       await store.commit(rev.state, null, {
@@ -371,63 +331,10 @@ async function deleteLedgerEntry(id) {
     } else if (actn === "del") {
       await store.deleteLedger(id);
     }
+    if (actn) $("ledger").focus();
   } catch (e) {
     console.error(e);
   }
-}
-
-async function deleteHistoryPoint(id) {
-  const h = snap.history.find((x) => x.id === id);
-  if (!h) return;
-  const actn = await modal(`<h3>Delete history point?</h3>
-    <p>${R.esc(h.date)} · ${M.fmtUSD(h.valueCents)} will be removed from the chart. The ledger is not affected.</p>
-    <div class="btnrow"><button class="btn danger" data-act="del">Delete point</button>
-    <button class="btn quiet" data-act="">Cancel</button></div>`);
-  if (actn === "del") await store.deleteHistory(id);
-}
-
-// ---------- founding ----------
-
-function addFoundingRow() {
-  const row = document.createElement("div");
-  row.className = "found-row";
-  row.style.cssText = "display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;margin-bottom:10px";
-  const n = $("found-rows").children.length + 1;
-  if (n === 1) {
-    const head = document.createElement("div");
-    head.className = "found-head";
-    head.setAttribute("aria-hidden", "true");
-    head.style.cssText = "display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;margin-bottom:6px;font-size:13px;color:var(--ink-2)";
-    head.innerHTML = "<span>Name</span><span>Value today (USD)</span><span>Put in (USD, optional)</span>";
-    $("found-rows").before(head);
-  }
-  row.innerHTML = `<input type="text" placeholder="Name" data-f-name aria-label="Member ${n}: name">
-    <input type="text" inputmode="decimal" placeholder="Value today" data-f-value aria-label="Member ${n}: value today in USD">
-    <input type="text" inputmode="decimal" placeholder="Put in" data-f-contrib aria-label="Member ${n}: money put in, USD, optional">`;
-  $("found-rows").appendChild(row);
-}
-
-async function establishOffice() {
-  const entries = [];
-  document.querySelectorAll(".found-row").forEach((row) => {
-    const name = row.querySelector("[data-f-name]").value.trim();
-    const valueTxt = row.querySelector("[data-f-value]").value.trim();
-    const contribTxt = row.querySelector("[data-f-contrib]").value.trim();
-    if (!name && !valueTxt) return;
-    const valueCents = M.parseUSDToCents(valueTxt);
-    entries.push({
-      name,
-      valueCents,
-      contributedCents: contribTxt ? M.parseUSDToCents(contribTxt) : valueCents,
-    });
-  });
-  const fx = parseFloat($("found-fx").value) || 3.75;
-  const zk = $("found-zakat").value === "" ? 2.5 : parseFloat($("found-zakat").value);
-  const res = M.found(entries, { fxRate: fx, zakatPct: zk });
-  await store.commit(res.state, cleanEntry(res.entry), {
-    history: { date: today(), valueCents: res.state.marketValueCents },
-  });
-  R.feedback("fb-found", "The office is established.", false);
 }
 
 // ---------- backup ----------
@@ -444,7 +351,6 @@ async function exportBackup() {
     members: snap.members,
     history: snap.history,
     ledger,
-    plan,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
@@ -466,6 +372,8 @@ function sanitizeBackup(d) {
   const c = d.config;
   if (!int(c.marketValueCents) || !int(c.totalUnitsMicro) || !fin(c.fxRate) || !fin(c.zakatPct)) return null;
   if (![d.members, d.history, d.ledger].every(Array.isArray)) return null;
+  if (d.members.reduce((a, m) => a + (int(m.unitsMicro) ? m.unitsMicro : NaN), 0) !== c.totalUnitsMicro) return null;
+  if (c.totalUnitsMicro <= 0 && c.marketValueCents > 0) return null;
   if (!d.members.every((m) => isId(m.id) && str(m.name, 80) && m.name.trim() && int(m.unitsMicro) && int(m.netContributedCents) && (m.createdAt === undefined || fin(m.createdAt)))) return null;
   if (!d.history.every((h) => isDate(h.date) && int(h.valueCents))) return null;
   if (!d.ledger.every((l) => l && typeof l.type === "string" && l.type in R.TYPE_LABELS
@@ -473,7 +381,6 @@ function sanitizeBackup(d) {
       && (l.memberId === undefined || isId(l.memberId)) && (l.memberName === undefined || str(l.memberName, 80))
       && (l.note === undefined || str(l.note, 300)) && (l.dateLabel === undefined || isDate(l.dateLabel))
       && (l.atMs === undefined || fin(l.atMs)))) return null;
-  if (d.plan !== undefined && d.plan !== null && (typeof d.plan !== "object" || Array.isArray(d.plan))) return null;
   const pick = (o, keys) => Object.fromEntries(keys.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
   return {
     app: d.app, exportedAt: str(d.exportedAt, 40) ? d.exportedAt : "",
@@ -481,7 +388,6 @@ function sanitizeBackup(d) {
     members: d.members.map((m) => pick(m, ["id", "name", "unitsMicro", "netContributedCents", "createdAt"])),
     history: d.history.map((h) => ({ date: h.date, valueCents: h.valueCents })),
     ledger: d.ledger.map((l) => pick(l, ["type", "memberId", "memberName", "amountCents", "unitsDeltaMicro", "note", "dateLabel", "atMs"])),
-    plan: d.plan ? JSON.parse(JSON.stringify(d.plan)) : null,
   };
 }
 
@@ -494,7 +400,7 @@ async function importBackup(e) {
     if (!data) throw new M.ModelError("That file is not a valid office backup. Nothing was changed.");
     const cur = snap;
     const fmtSide = (cfg, members, history, ledger) =>
-      `${members.length} members · ${M.fmtUSD(cfg ? cfg.marketValueCents : 0)}\n${history.length} history points · ${ledger.length} ledger entries`;
+      `${members.length} people · worth ${M.fmtUSD(cfg ? cfg.marketValueCents : 0)}\n${ledger.length} history lines · ${history.length} saved worths`;
     const actn = await modal(`<h3>Restore from backup?</h3>
       <p>This replaces everything currently stored. Review before confirming:</p>
       <pre>NOW\n${fmtSide(cur.config, cur.members, cur.history, cur.ledger)}\n\nBACKUP (${R.esc(data.exportedAt || "unknown date")})\n${fmtSide(data.config, data.members, data.history, data.ledger)}</pre>
@@ -552,7 +458,7 @@ async function setupAuth() {
 // ---------- the page around the numbers ----------
 
 function initPageMotion() {
-  document.querySelectorAll(".sect > *:not(.grow-bg)").forEach((c) => c.classList.add("rise"));
+  document.querySelectorAll(".sect > *").forEach((c) => c.classList.add("rise"));
   const io = "IntersectionObserver" in window ? new IntersectionObserver((es) => {
     es.forEach((e) => {
       if (!e.isIntersecting) return;
@@ -586,7 +492,6 @@ export async function boot() {
   store = DEMO ? new MemoryStore() : new FirestoreStore();
   await store.init();
   wireEditActions();
-  initCalc({ getState: () => state, getPlan: () => plan, updatePlan });
 
   if (DEMO) {
     editUI = true;

@@ -1,9 +1,9 @@
 // ============================================================
 // Storage layer. Two interchangeable stores:
-//   FirestoreStore — live data, realtime onSnapshot, batched
-//                    atomic writes. Reads public, writes gated
-//                    by security rules to the owner's account.
-//   MemoryStore    — ?demo=1: seeded sample data, no network.
+//   FirestoreStore: live data, realtime onSnapshot, batched
+//                   atomic writes. Reads and writes are gated by
+//                   security rules to the owner's account.
+//   MemoryStore: ?demo=1, seeded sample data, no network.
 //
 // Snapshot shape passed to subscribers:
 //   {
@@ -27,13 +27,12 @@ export class FirestoreStore {
     this.fs = fs;
     this.app = initializeApp(firebaseConfig);
     this.db = fs.getFirestore(this.app);
-    this.parts = { config: undefined, members: undefined, history: undefined, ledger: undefined, plan: undefined };
+    this.parts = { config: undefined, members: undefined, history: undefined, ledger: undefined };
     this.subscribers = [];
   }
 
   officeRef() { return this.fs.doc(this.db, NS, OFFICE_DOC); }
   colRef(name) { return this.fs.collection(this.db, NS, OFFICE_DOC, name); }
-  planRef() { return this.fs.doc(this.db, NS, OFFICE_DOC, "plan", "current"); }
 
   subscribe(cb) {
     this.subscribers.push(cb);
@@ -42,8 +41,6 @@ export class FirestoreStore {
     const push = (key, val) => { this.parts[key] = val; this.emit(); };
     this.unsubs = [
       onSnapshot(this.officeRef(), (d) => push("config", d.exists() ? d.data() : null),
-        (e) => this.fail(e)),
-      onSnapshot(this.planRef(), (d) => push("plan", d.exists() ? d.data() : null),
         (e) => this.fail(e)),
       onSnapshot(this.colRef("members"), (qs) => {
         push("members", qs.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -64,7 +61,7 @@ export class FirestoreStore {
     (this.unsubs || []).forEach((u) => u());
     this.unsubs = null;
     this.subscribers = [];
-    this.parts = { config: undefined, members: undefined, history: undefined, ledger: undefined, plan: undefined };
+    this.parts = { config: undefined, members: undefined, history: undefined, ledger: undefined };
   }
 
   fail(e) {
@@ -74,10 +71,9 @@ export class FirestoreStore {
 
   emit() {
     const p = this.parts;
-    if (p.config === undefined || p.plan === undefined || !p.members || !p.history || !p.ledger) return;
+    if (p.config === undefined || !p.members || !p.history || !p.ledger) return;
     const snap = {
       config: p.config,
-      plan: p.plan,
       members: [...p.members].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0) || a.name.localeCompare(b.name)),
       history: p.history,
       ledger: p.ledger,
@@ -132,10 +128,6 @@ export class FirestoreStore {
     await deleteDoc(doc(this.colRef("ledger"), id));
   }
 
-  async savePlan(plan) {
-    await this.fs.setDoc(this.planRef(), plan);
-  }
-
   // Full restore from a backup file: wipe namespace, rewrite.
   // Every ledger entry (the live list only holds the newest 300).
   async fullLedger() {
@@ -154,7 +146,7 @@ export class FirestoreStore {
       const qs = await getDocs(this.colRef(col));
       qs.docs.forEach((d) => dels.push(d.ref));
     }
-    const ops = dels.length + 1 + data.members.length + data.history.length + data.ledger.length + (data.plan ? 1 : 0) + 1;
+    const ops = dels.length + 1 + data.members.length + data.history.length + data.ledger.length + 1;
     if (ops > 500) throw new Error(`This restore needs ${ops} writes; the limit for one safe step is 500. Nothing was changed.`);
     const b = writeBatch(this.db);
     dels.forEach((ref) => b.delete(ref));
@@ -168,7 +160,6 @@ export class FirestoreStore {
       const { id, atMs, ...rest } = l;
       b.set(doc(this.colRef("ledger")), { ...rest, at: Timestamp.fromMillis(atMs || Date.now()) });
     }
-    if (data.plan) b.set(this.planRef(), data.plan);
     b.set(doc(this.colRef("ledger")), {
       type: "import", amountCents: 0, unitsDeltaMicro: 0,
       note: `backup restored (${data.members.length} members, ${data.ledger.length} ledger entries)`,
@@ -185,9 +176,9 @@ function demoSeed() {
   const now = Date.now();
   const d = (n) => new Date(now - n * DAY).toISOString().slice(0, 10);
   const members = [
-    { id: "demoA", name: "Abdulaziz", unitsMicro: 153656600 * 1000, netContributedCents: 14499100, createdAt: now - 220 * DAY },
-    { id: "demoM", name: "Mom", unitsMicro: 115128800 * 1000, netContributedCents: 10848200, createdAt: now - 220 * DAY },
-    { id: "demoT", name: "Turki", unitsMicro: 17614600 * 1000, netContributedCents: 1639600, createdAt: now - 160 * DAY },
+    { id: "demoA", name: "Abdulaziz", unitsMicro: 14499100 * 10000, netContributedCents: 14499100, createdAt: now - 220 * DAY },
+    { id: "demoM", name: "Mom", unitsMicro: 10848200 * 10000, netContributedCents: 10848200, createdAt: now - 220 * DAY },
+    { id: "demoT", name: "Turki", unitsMicro: 1639600 * 10000, netContributedCents: 1639600, createdAt: now - 160 * DAY },
   ];
   return {
     config: {
@@ -208,18 +199,18 @@ function demoSeed() {
     ],
     ledger: [
       { id: "l3", type: "revaluation", amountCents: 28640000, unitsDeltaMicro: 0, note: "monthly mark", atMs: now - 2 * DAY },
-      { id: "l2", type: "deposit", memberId: "demoT", memberName: "Turki", amountCents: 500000, unitsDeltaMicro: 4832000000, atMs: now - 40 * DAY },
-      { id: "l1", type: "founding", amountCents: 24100000, unitsDeltaMicro: 241000000000, atMs: now - 220 * DAY },
+      { id: "l2", type: "deposit", memberId: "demoT", memberName: "Turki", amountCents: 500000, unitsDeltaMicro: 5000000000, atMs: now - 40 * DAY },
+      { id: "l1", type: "founding", amountCents: 26489900, unitsDeltaMicro: 264899000000, atMs: now - 220 * DAY },
     ],
   };
 }
 
 export class MemoryStore {
   async init() {
-    // ?demo=1&empty=1 exercises the first-run founding flow.
+    // ?demo=1&empty=1 starts with an empty fund.
     this.data = new URLSearchParams(location.search).has("empty")
-      ? { config: null, members: [], history: [], ledger: [], plan: null }
-      : { ...demoSeed(), plan: null };
+      ? { config: null, members: [], history: [], ledger: [] }
+      : demoSeed();
     this.subscribers = [];
   }
 
@@ -229,7 +220,6 @@ export class MemoryStore {
     const d = this.data;
     const snap = {
       config: d.config ? { ...d.config } : null,
-      plan: d.plan ? JSON.parse(JSON.stringify(d.plan)) : null,
       members: d.members.map((m) => ({ ...m })).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)),
       history: [...d.history].sort((a, b) => a.date.localeCompare(b.date)),
       ledger: [...d.ledger].sort((a, b) => b.atMs - a.atMs),
@@ -256,11 +246,6 @@ export class MemoryStore {
     this.emit();
   }
 
-  async savePlan(plan) {
-    this.data.plan = JSON.parse(JSON.stringify(plan));
-    this.emit();
-  }
-
   async upsertHistory(date, valueCents, silent) {
     const f = this.data.history.find((h) => h.date === date);
     if (f) f.valueCents = valueCents;
@@ -283,7 +268,6 @@ export class MemoryStore {
       members: data.members.map((m) => ({ ...m })),
       history: data.history.map((h) => ({ ...h, id: h.date })),
       ledger: data.ledger.map((l) => ({ ...l })),
-      plan: data.plan || this.data.plan || null,
     };
     this.data.ledger.push({
       id: "imp" + Date.now(), type: "import", amountCents: 0, unitsDeltaMicro: 0,

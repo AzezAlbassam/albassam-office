@@ -1,12 +1,21 @@
 // ============================================================
 // ALBASSAM — PRIVATE FAMILY OFFICE
-// Core accounting model: a unitized fund (mutual-fund style).
+// Core accounting model: a shares fund.
+//
+// The family's rule (2026-10-07): shares follow the money put in.
+//  - Money coming in buys shares at $1.00 each, whatever the fund is
+//    worth today. So a newcomer's share is their money ÷ all money put
+//    in, and past losses (or gains) are shared with them.
+//  - Money going out cancels shares at today's price, so taking out
+//    40% of what your share is worth shrinks your share by 40% and
+//    leaves everyone else's money untouched.
 //
 // Invariants:
 //  - USD amounts are stored as integer cents.
-//  - Units are stored as integer micro-units (units × 1,000,000).
+//  - Units are stored as integer micro-units (units × 1,000,000);
+//    one unit = one dollar put in, so "put in" == units ÷ 1,000,000.
 //  - Ownership % is always DERIVED: member units ÷ total units.
-//  - Revaluation changes NAV per unit only; unit counts never move.
+//  - Revaluation changes the fund's worth only; unit counts never move.
 //  - Every mutation returns a ledger-ready description of itself.
 //
 // All functions are pure: they take a state snapshot and return
@@ -44,7 +53,7 @@ function clone(state) {
 
 function findMember(state, id) {
   const m = state.members.find((x) => x.id === id);
-  if (!m) throw new ModelError('Member not found.');
+  if (!m) throw new ModelError('That person is no longer in the fund.');
   return m;
 }
 
@@ -109,7 +118,10 @@ export function totalContributedCents(state) {
 
 // ---------- mutations (pure) ----------
 
-// Units to issue/redeem for a USD amount at current NAV.
+// One unit per dollar put in.
+const UNITS_PER_CENT = MICRO / 100;
+
+// Units to redeem for a USD amount at current NAV.
 // Computed as amount × (totalUnitsMicro / marketValueCents) to stay
 // well inside double precision, then rounded to integer micro-units.
 function unitsForAmountMicro(state, amountCents) {
@@ -152,15 +164,14 @@ export function found(entries, opts) {
   };
 }
 
+// Money in buys shares at $1.00 each (the family's rule), not at
+// today's price.
 export function deposit(state, memberId, amountCents) {
   assertCents(amountCents);
-  if (amountCents <= 0) throw new ModelError('Deposit must be above zero.');
-  if (state.marketValueCents <= 0 || state.totalUnitsMicro <= 0) {
-    throw new ModelError('The pool is at zero. Revalue it above zero before recording deposits.');
-  }
+  if (amountCents <= 0) throw new ModelError('The amount must be above zero.');
   const s = clone(state);
   const m = findMember(s, memberId);
-  const issued = unitsForAmountMicro(s, amountCents);
+  const issued = amountCents * UNITS_PER_CENT;
   m.unitsMicro += issued;
   m.netContributedCents += amountCents;
   s.totalUnitsMicro += issued;
@@ -173,20 +184,20 @@ export function deposit(state, memberId, amountCents) {
 
 export function withdraw(state, memberId, amountCents) {
   assertCents(amountCents);
-  if (amountCents <= 0) throw new ModelError('Withdrawal must be above zero.');
+  if (amountCents <= 0) throw new ModelError('The amount must be above zero.');
   const s = clone(state);
   const m = findMember(s, memberId);
   const max = maxWithdrawableCents(s, memberId);
   if (amountCents > max) {
     throw new ModelError(
-      `That exceeds ${m.name}'s balance. Maximum withdrawable: $${fmt2(max / 100)}.`,
+      `That's more than ${m.name}'s share is worth. The most they can take out is $${fmt2(max / 100)}.`,
       { maxWithdrawableCents: max },
     );
   }
   // Full redemption: hand over every unit so no dust remains.
   const redeemed = amountCents === max ? m.unitsMicro : unitsForAmountMicro(s, amountCents);
   m.unitsMicro -= redeemed;
-  m.netContributedCents -= amountCents;
+  m.netContributedCents = Math.round(m.unitsMicro / UNITS_PER_CENT);   // put in shrinks with the share
   s.totalUnitsMicro -= redeemed;
   s.marketValueCents -= amountCents;
   return {
@@ -197,12 +208,12 @@ export function withdraw(state, memberId, amountCents) {
 
 export function addMember(state, name, openingDepositCents, opts) {
   name = (name || '').trim();
-  if (!name) throw new ModelError('Give the new member a name.');
+  if (!name) throw new ModelError('Give the new person a name.');
   if (state.members.some((x) => x.name.toLowerCase() === name.toLowerCase())) {
-    throw new ModelError('A member with that name already exists.');
+    throw new ModelError('Someone with that name is already in the fund.');
   }
   assertCents(openingDepositCents, 'Opening deposit');
-  if (openingDepositCents <= 0) throw new ModelError('Opening deposit must be above zero.');
+  if (openingDepositCents <= 0) throw new ModelError('The amount must be above zero.');
   const s = clone(state);
   const member = {
     id: newId(),
@@ -229,7 +240,7 @@ export function removeMemberZero(state, memberId) {
   const val = memberValueCents(s, memberId);
   if (val !== 0 || m.unitsMicro !== 0) {
     throw new ModelError(
-      `${m.name} still holds $${fmt2(val / 100)}. Choose: redeem their units as a withdrawal, or reassign them to the remaining members.`,
+      `${m.name}'s share is still worth $${fmt2(val / 100)}. Pay it out, or give the share to the others.`,
       { balanceCents: val },
     );
   }
@@ -247,6 +258,7 @@ export function removeMemberRedeem(state, memberId) {
     const w = withdraw(s0, memberId, val);
     s = w.state; wEntry = w.entry;
   }
+  s.totalUnitsMicro -= s.members.find((x) => x.id === memberId).unitsMicro;   // 0 after a full payout
   s.members = s.members.filter((x) => x.id !== memberId);
   return {
     state: s,
@@ -262,27 +274,29 @@ export function removeMemberReassign(state, memberId) {
   const s = clone(state);
   const m = findMember(s, memberId);
   const others = s.members.filter((x) => x.id !== memberId);
-  if (!others.length) throw new ModelError("There's no one left to reassign to. Pay out instead.");
+  const holders = others.filter((x) => x.unitsMicro > 0);
+  if (!holders.length) throw new ModelError("No one else holds a share. Pay it out instead.");
   const val = memberValueCents(s, memberId);
-  const shares = allocateProportional(m.unitsMicro, others.map((o) => o.unitsMicro));
-  others.forEach((o, i) => { o.unitsMicro += shares[i]; });
-  // Their contributed capital transfers pro-rata too, so total P/L reconciles.
-  const contrib = allocateProportional(Math.max(0, m.netContributedCents), others.map((o) => o.unitsMicro));
-  others.forEach((o, i) => { o.netContributedCents += contrib[i]; });
+  const shares = allocateProportional(m.unitsMicro, holders.map((o) => o.unitsMicro));
+  holders.forEach((o, i) => { o.unitsMicro += shares[i]; });
+  // Their money put in moves with the share, so put in keeps matching shares.
+  const contrib = allocateProportional(Math.max(0, m.netContributedCents), holders.map((o) => o.unitsMicro));
+  holders.forEach((o, i) => { o.netContributedCents += contrib[i]; });
   s.members = others;
   return {
     state: s,
     entry: {
       type: 'member-removed-reassigned', memberId, memberName: m.name,
       amountCents: val, unitsDeltaMicro: 0,
-      note: `${m.name}'s units reassigned pro-rata to ${others.length} member(s)`,
+      note: `${m.name}'s share given to the other ${holders.length === 1 ? 'person' : holders.length + ' people'}`,
     },
   };
 }
 
 export function revalue(state, newMarketValueCents) {
   assertCents(newMarketValueCents, 'Market value');
-  if (newMarketValueCents <= 0) throw new ModelError('Market value must be above zero.');
+  if (newMarketValueCents <= 0) throw new ModelError("The fund's worth must be above zero.");
+  if (state.totalUnitsMicro <= 0) throw new ModelError('Add a person first: no one holds a share yet.');
   const s = clone(state);
   const prev = s.marketValueCents;
   s.marketValueCents = newMarketValueCents;
@@ -295,6 +309,14 @@ export function revalue(state, newMarketValueCents) {
   };
 }
 
+// Undo and correct are exact only when nothing moved money or the fund's
+// worth after the record: every later move was priced with it in place.
+const LATER_MOVES = ['founding', 'deposit', 'withdrawal', 'member-added', 'member-removed-redeemed',
+  'member-removed-reassigned', 'revaluation', 'import'];
+export function hasLaterMoves(ledger, entry) {
+  return ledger.some((x) => x.id !== entry.id && x.atMs > entry.atMs && LATER_MOVES.includes(x.type));
+}
+
 // Reverse a ledger entry's effect exactly (undo). Only movements
 // that recorded an exact unit delta are reversible — the reversal
 // uses the stored units, so it is exact even after later
@@ -304,15 +326,17 @@ export function reverseEntry(state, entry) {
   if (t === "deposit" || t === "member-added") {
     const s = clone(state);
     const m = s.members.find((x) => x.id === entry.memberId);
-    if (!m) throw new ModelError("That member no longer exists, so the movement can't be reversed.");
+    if (!m) throw new ModelError("That person is no longer in the fund, so this can't be undone.");
     const units = entry.unitsDeltaMicro;
-    if (!Number.isInteger(units) || units <= 0) throw new ModelError("This record carries no unit delta to reverse.");
+    if (!Number.isInteger(units) || units <= 0) throw new ModelError("This record can't be undone.");
     if (m.unitsMicro < units) {
-      throw new ModelError(`${m.name} now holds less than this movement issued. Record a withdrawal instead.`);
+      throw new ModelError(`${m.name}'s share is now smaller than this added. Take money out instead.`);
     }
+    // Money and shares must reach zero together, or someone is left owning
+    // money with no share (or a share of nothing).
     const mvAfter = s.marketValueCents - entry.amountCents;
-    if (mvAfter < 0 || (mvAfter === 0 && s.totalUnitsMicro - units > 0)) {
-      throw new ModelError("Reversing this would take the portfolio value below the remaining members' holdings.");
+    if (mvAfter < 0 || (mvAfter === 0) !== (s.totalUnitsMicro - units === 0)) {
+      throw new ModelError("The fund's worth has changed too much since then to undo this. Take money out instead.");
     }
     m.unitsMicro -= units;
     m.netContributedCents -= entry.amountCents;
@@ -327,16 +351,16 @@ export function reverseEntry(state, entry) {
   if (t === "withdrawal") {
     const s = clone(state);
     const m = s.members.find((x) => x.id === entry.memberId);
-    if (!m) throw new ModelError("That member no longer exists, so the movement can't be reversed.");
+    if (!m) throw new ModelError("That person is no longer in the fund, so this can't be undone.");
     const units = -entry.unitsDeltaMicro;
-    if (!Number.isInteger(units) || units <= 0) throw new ModelError("This record carries no unit delta to reverse.");
+    if (!Number.isInteger(units) || units <= 0) throw new ModelError("This record can't be undone.");
     m.unitsMicro += units;
-    m.netContributedCents += entry.amountCents;
+    m.netContributedCents = Math.round(m.unitsMicro / UNITS_PER_CENT);
     s.totalUnitsMicro += units;
     s.marketValueCents += entry.amountCents;
     return { state: s };
   }
-  throw new ModelError("Only deposits, withdrawals, and member admissions can be reversed.");
+  throw new ModelError("Only money in, money out and new people can be undone.");
 }
 
 export function updateSettings(state, { fxRate, zakatPct }) {
@@ -368,9 +392,9 @@ export function fmtPctBp2(bp2) { return (bp2 / 100).toFixed(2) + '%'; }
 // Parse a user-typed USD amount ("25,000.5" → 2500050 cents).
 export function parseUSDToCents(text) {
   const t = String(text || '').replace(/[$,\s]/g, '');
-  if (!t || !/^\d*\.?\d*$/.test(t) || t === '.') throw new ModelError('Enter a valid USD amount.');
+  if (!t || !/^\d*\.?\d*$/.test(t) || t === '.') throw new ModelError('Type an amount in dollars, like 25,000.');
   const v = Math.round(parseFloat(t) * 100);
-  if (!Number.isFinite(v)) throw new ModelError('Enter a valid USD amount.');
+  if (!Number.isFinite(v)) throw new ModelError('Type an amount in dollars, like 25,000.');
   return v;
 }
 

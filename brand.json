@@ -1,7 +1,7 @@
 {
   "name": "Albassam · Falaj",
   "tagline": "One spring. Every share.",
-  "description": "Aziz's private family office: the family's money as one spring whose water reaches each member by their share. v4 'Falaj' (2026-09-28): a scroll-scrubbed hero film of an Arabian falaj channel, a deep-water canvas sampled from the footage, and a dividend-salary calculator (the gate). Supersedes v3 'The Instrument'.",
+  "description": "Aziz's private family fund: one spring whose water reaches each member by their share. v4.1 'Falaj' (2026-10-07): a scroll-scrubbed hero film of an Arabian falaj channel, a deep-water canvas sampled from the footage, and one plain table of shares, money put in, worth today and zakat. Shares follow the money put in. The v4 dividend calculator was removed at Aziz's request.",
   "sourceUrl": "https://azezalbassam.github.io/albassam-office",
   "logo": {
     "primary": "logos/header.svg",
@@ -51,14 +51,14 @@
       "hex": "#7FD6C4",
       "oklch": "oklch(81.6% 0.089 179.2)",
       "name": "Spring water",
-      "usage": "the one accent: CTAs, the gate, basin amounts, focus rings, chart lines. Rare doses only"
+      "usage": "the one accent: CTAs, share figures, share previews, focus rings. Rare doses only"
     },
     {
       "role": "accent-secondary",
       "hex": "#E59A7E",
       "oklch": "oklch(75.4% 0.099 41.3)",
       "name": "Clay",
-      "usage": "losses, US tax, zakat deductions, destructive actions only (6.1:1 on the canvas). Gains use #93D3A8"
+      "usage": "losses, money out, errors, destructive actions only (6.1:1 on the canvas). Gains use #93D3A8"
     }
   ],
   "typography": {
@@ -107,12 +107,11 @@
       "understated",
       "precise"
     ],
-    "tone": "Calm, safe, custodial, and plain. The brand speaks in the language of water: spring, share, flow, basin, gate. Sentence case, short lines, no exclamation points, no finance jargon a family member would not follow. English only (Arabic script removed by the owner on 2026-07-06 and reconfirmed on 2026-09-28). Money copy is honest: reference yields carry their date and 'not advice'; zakat modes are 'calculator modes, not a fatwa'.",
+    "tone": "Calm, safe, custodial, and plain. Water words (spring, share) and everyday money words (put in, worth today, money in, money out). Sentence case, short lines, no exclamation points, no finance jargon (units, NAV, redeem). English only (Arabic script removed by the owner on 2026-07-06 and reconfirmed on 2026-09-28). Keep it simple: no extra ratios or calculators unless Aziz asks.",
     "messagingPillars": [
       "One spring. Every share.",
-      "Open the gate.",
-      "What each person gets.",
-      "How much would it take?"
+      "Shares follow the money each person put in.",
+      "See the new shares before you save."
     ],
     "vocabulary": {
       "use": [
@@ -135,7 +134,7 @@
     }
   },
   "imagery": {
-    "style": "One world: an ancient Arabian falaj photographed straight down in soft early-morning light. Pale limestone, clear aquamarine water, feathered date-palm shadows. The hero film descends from the channel into a round basin; three stills continue the story (the channel splitting into three basins, the same channel in a dry season, the channel feeding a palm garden).",
+    "style": "One world: an ancient Arabian falaj photographed straight down in soft early-morning light. The hero film descends from the channel into a round basin.",
     "subjects": [
       "the falaj channel and its basins",
       "water as income",
@@ -151,10 +150,7 @@
     ],
     "samples": [
       "assets/hero-poster.jpg",
-      "assets/hero-ending.jpg",
-      "assets/falaj-branch.jpg",
-      "assets/falaj-dry.jpg",
-      "assets/falaj-grove.jpg"
+      "assets/hero-ending.jpg"
     ]
   },
   "layout": {
@@ -163,11 +159,9 @@
     "spacing": "sections 72-128px apart; 20px to 6vw side gutters; max width 1280px",
     "postureRules": [
       "The hero is a pinned 400vh scroll-scrubbed film (Tier 1, one 6-second shot) with three caption bands; phones and reduced motion get a composed still hero over the final frame.",
-      "The signature element is the gate: a wooden sluice gate that lifts with the blended yield while water flows down branching channels into one basin per member; the basin pools grow with each person's monthly salary.",
-      "No two adjacent sections share a layout skeleton: gate (interactive), payslips, mad-lib sentence, split text/bars, rows, image+controls, chart, split card, comparison rows, registry panels, member rows, history line, ledger list.",
-      "The accent (spring water) appears only on actions, the gate, salary figures, focus rings and chart lines. Clay marks losses and deductions only.",
       "Motion: the scrubbed film, one entrance per section (rise with a short stagger that retires), the slow environment layer, a water line drawing down the left gutter, basin ripples. Transform and opacity only. Everything pinned under reduced motion.",
-      "The office is private: nothing reads data before the owner's Google sign-in; Firestore rules enforce it."
+      "The office is private: nothing reads data before the owner's Google sign-in; Firestore rules enforce it.",
+      "Below the hero, keep it simple: the fund table (share, put in, worth today, zakat a year), money in and out with a live share preview, and a folded history. No calculators or extra ratios unless Aziz asks."
     ]
   }
 }

@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Model tests — Albassam Office</title>
+<title>Model tests · Albassam</title>
 <style>body{font:14px/1.6 monospace;background:#0A0C0F;color:#EAE6DD;padding:24px}
 .pass{color:#58A47C}.fail{color:#C25E4C}h1{font-size:16px}</style>
 </head>
 <body>
-<h1>Unitized fund model — test run</h1>
+<h1>Shares fund model: test run</h1>
 <div id="out"></div>
 <script type="module">
 import * as M from '../js/model.js';
@@ -58,7 +58,7 @@ t('deposit: A +$25,000 raises A%, lowers others, still sums 100.00%', () => {
   eq(r.state.members[0].netContributedCents, S.members[0].netContributedCents + 2500000, 'contrib');
   S = r.state;
 });
-t('deposit: units issued at current NAV keep others’ value unchanged', () => {
+t('deposit at $1.00 NAV keeps others’ value unchanged', () => {
   const valsBefore = M.memberValuesCents(S);
   const r = M.deposit(S, S.members[1].id, 1000000);
   const valsAfter = M.memberValuesCents(r.state);
@@ -71,7 +71,7 @@ t('deposit: units issued at current NAV keep others’ value unchanged', () => {
 t('withdraw: over-balance rejected with max shown', () => {
   const tId = S.members[2].id;
   const max = M.maxWithdrawableCents(S, tId);
-  const e = throws(() => M.withdraw(S, tId, max + 1), 'Maximum withdrawable');
+  const e = throws(() => M.withdraw(S, tId, max + 1), 'The most they can take out');
   eq(e.data.maxWithdrawableCents, max, 'max in error data');
 });
 t('withdraw: normal withdrawal lowers member % and mv', () => {
@@ -100,7 +100,7 @@ t('add member: opening deposit rescales everyone, sums 100.00%', () => {
   close(M.memberValueCents(r.state, sara.id), 5000000, 2, 'Sara value ≈ deposit');
   S = r.state;
 });
-t('add member: duplicate name rejected', () => { throws(() => M.addMember(S, 'sara', 100), 'already exists'); });
+t('add member: duplicate name rejected', () => { throws(() => M.addMember(S, 'sara', 100), 'already in the fund'); });
 
 // Revaluation
 t('revalue: values/P&L move, units unchanged', () => {
@@ -116,7 +116,7 @@ t('revalue: values/P&L move, units unchanged', () => {
 
 // Delete member
 t('delete nonzero balance without choice → blocked', () => {
-  throws(() => M.removeMemberZero(S, S.members[0].id), 'still holds');
+  throws(() => M.removeMemberZero(S, S.members[0].id), 'still worth');
 });
 t('delete via redeem: recorded amount = balance; totals reconcile', () => {
   const aId = S.members[0].id;
@@ -216,7 +216,7 @@ t('reverse deposit blocked when member no longer holds those units', () => {
   const dep = M.deposit(st, st.members[1].id, 500000);
   const bId = dep.state.members[1].id;
   const emptied = M.withdraw(dep.state, bId, M.maxWithdrawableCents(dep.state, bId)).state;
-  throws(() => M.reverseEntry(emptied, { type: 'deposit', memberId: bId, amountCents: 500000, unitsDeltaMicro: dep.entry.unitsDeltaMicro }), 'Record a withdrawal');
+  throws(() => M.reverseEntry(emptied, { type: 'deposit', memberId: bId, amountCents: 500000, unitsDeltaMicro: dep.entry.unitsDeltaMicro }), 'Take money out instead');
 });
 t('reverse member-added removes the member when it empties them', () => {
   let st = M.found([{ name: 'A', valueCents: 10000000, contributedCents: 10000000 }]).state;
@@ -226,6 +226,86 @@ t('reverse member-added removes the member when it empties them', () => {
   eq(undone.removedMemberId, add.entry.memberId, 'removed id');
   eq(undone.state.marketValueCents, st.marketValueCents, 'mv');
   eq(undone.state.totalUnitsMicro, st.totalUnitsMicro, 'units');
+});
+
+// ---- the family's rule (2026-10-07): shares follow the money put in ----
+// Real fund on 2026-10-07: $4,474.83 worth, $269,473 put in.
+const real = () => {
+  let st = { marketValueCents: 0, totalUnitsMicro: 0, fxRate: 3.75, zakatPct: 2.5, members: [] };
+  st = M.addMember(st, 'Aziz', 14499100).state;
+  st = M.addMember(st, 'Mom', 10844200).state;
+  st = M.addMember(st, 'Turki', 1604000).state;
+  return M.revalue(st, 447483).state;
+};
+t('a person can be added to an empty fund', () => {
+  const st = M.addMember({ marketValueCents: 0, totalUnitsMicro: 0, fxRate: 3.75, zakatPct: 2.5, members: [] }, 'Aziz', 100000).state;
+  eq(M.displayPercentsBp2(st)[0], 10000); eq(st.marketValueCents, 100000);
+});
+t('Dad joins with $800,000: shares split by money put in (74.80%), nobody goes to zero', () => {
+  const r = M.addMember(real(), 'Dad', 80000000);
+  const p = M.displayPercentsBp2(r.state);
+  eq(p[3], 7480, 'Dad'); eq(p[0], 1356, 'Aziz'); eq(p[1], 1014, 'Mom'); eq(p[2], 150, 'Turki');
+  eq(r.state.marketValueCents, 447483 + 80000000, 'fund worth');
+  eq(r.state.members[3].netContributedCents, 80000000, 'Dad put in');
+  eq(M.memberValuesCents(r.state).reduce((a, b) => a + b, 0), r.state.marketValueCents, 'reconcile');
+});
+t('money added by an existing member also enters at $1.00 a share', () => {
+  const st = real();
+  const r = M.deposit(st, st.members[2].id, 10000000);   // Turki +$100,000
+  eq(r.state.members[2].netContributedCents, 1604000 + 10000000, 'Turki put in');
+  eq(M.displayPercentsBp2(r.state)[2], 3141, 'Turki share');      // 116,040 / 369,473 = 31.41%
+});
+t('taking out 40% of your worth shrinks your share by 40%; others keep their money', () => {
+  const st = real();
+  const aId = st.members[0].id;
+  const worth = M.memberValueCents(st, aId);
+  const before = M.memberValuesCents(st);
+  const r = M.withdraw(st, aId, Math.round(worth * 0.4));
+  close(r.state.members[0].unitsMicro / st.members[0].unitsMicro, 0.6, 1e-5, 'share kept');
+  eq(r.state.members[0].netContributedCents, Math.round(r.state.members[0].unitsMicro / 10000), 'put in follows share');
+  const after = M.memberValuesCents(r.state);
+  close(after[1], before[1], 1, 'Mom untouched'); close(after[2], before[2], 1, 'Turki untouched');
+});
+t('withdraw then undo restores the share and the money put in exactly', () => {
+  const st = real();
+  const w = M.withdraw(st, st.members[1].id, 100000);
+  const u = M.reverseEntry(w.state, w.entry);
+  eq(u.state.members[1].unitsMicro, st.members[1].unitsMicro, 'units');
+  eq(u.state.members[1].netContributedCents, st.members[1].netContributedCents, 'put in');
+  eq(u.state.marketValueCents, st.marketValueCents, 'fund worth');
+});
+t('a fund worth $0 still accepts a newcomer at $1.00 a share', () => {
+  const zero = { ...real(), marketValueCents: 0 };
+  const r = M.addMember(zero, 'Sara', 5000000);
+  eq(r.state.marketValueCents, 5000000);
+  eq(M.memberValuesCents(r.state).reduce((a, b) => a + b, 0), 5000000, 'reconcile');
+});
+
+// ---- fixes from the 2026-10-07 review ----
+t('undo is offered only when no money moved after the record', () => {
+  const led = [{ id: 'w', type: 'withdrawal', atMs: 10 }, { id: 'd', type: 'member-added', atMs: 20 }, { id: 'n', type: 'settings', atMs: 30 }];
+  eq(M.hasLaterMoves(led, led[0]), true, 'withdrawal then Dad joins');
+  eq(M.hasLaterMoves(led, led[1]), false, 'newest money record');
+});
+t('undoing the last share after a gain is refused (no money left without an owner)', () => {
+  let st = M.addMember({ marketValueCents: 0, totalUnitsMicro: 0, fxRate: 3.75, zakatPct: 2.5, members: [] }, 'Aziz', 10000000);
+  const e = st.entry; st = M.revalue(st.state, 12000000).state;
+  throws(() => M.reverseEntry(st, e), 'changed too much');
+});
+t('paying out a share worth $0.00 removes its last units from the total', () => {
+  const r = M.addMember(real(), 'Tiny', 1);              // $0.01 at $0.0166 a share shows $0.00
+  const out = M.removeMemberRedeem(r.state, r.entry.memberId).state;
+  eq(out.members.reduce((a, m) => a + m.unitsMicro, 0), out.totalUnitsMicro, 'units add up');
+});
+t('a share is given only to people who still hold one', () => {
+  let st = M.addMember({ marketValueCents: 0, totalUnitsMicro: 0, fxRate: 3.75, zakatPct: 2.5, members: [] }, 'Aziz', 100000).state;
+  st = M.addMember(st, 'Mom', 100000).state;
+  const momId = st.members[1].id;
+  st = M.withdraw(st, momId, M.maxWithdrawableCents(st, momId)).state;
+  throws(() => M.removeMemberReassign(st, st.members[0].id), 'Pay it out instead');
+});
+t('the worth cannot be set while no one holds a share', () => {
+  throws(() => M.revalue({ marketValueCents: 0, totalUnitsMicro: 0, fxRate: 3.75, zakatPct: 2.5, members: [] }, 100), 'Add a person first');
 });
 
 out.insertAdjacentHTML('beforeend', `<h1>${passed} passed, ${failed} failed</h1>`);

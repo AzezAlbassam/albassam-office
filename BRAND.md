@@ -27,26 +27,22 @@ nothing else. Gains are `#93D3A8`. Never a pure black or white canvas.
 Newsreader carries every heading and every money figure; Hanken Grotesk carries
 everything read and every control; Martian Mono appears only in tiny labels.
 
-## The signature element
+## The share rule
 
-The gate. A wooden sluice gate lifts as the yield rises; water runs down branching
-channels into one round basin per member, and each pool grows with that person's
-net monthly salary. It is the one interactive moment on the page, and it performs
-the brand's idea instead of describing it.
+Shares follow the money put in: money in buys shares at $1.00 each, money out
+cancels shares at today's price. The page always shows everyone's new share before
+anything is saved.
 
 ## Imagery
 
 One world: the falaj from directly above in soft morning light. The hero film
-descends from the channel into the basin. Three stills continue it: the channel
-splitting into three basins, the same channel in a dry season, the channel feeding a
-palm garden. All generated on Higgsfield in the same light and palette.
+descends from the channel into the basin. Generated on Higgsfield.
 
 ## Voice
 
 Calm, safe, plain, honest. Short sentences in sentence case. No exclamation points, no
 em dashes, no finance jargon a family member would not follow. English only.
-Reference yields always show their date and "not advice". Zakat modes are "calculator
-modes, not a fatwa".
+Keep it simple: no extra ratios or calculators unless Aziz asks.
 
 ## Privacy
 
