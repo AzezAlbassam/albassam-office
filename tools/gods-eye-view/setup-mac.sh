@@ -155,6 +155,7 @@ say "Running the setup doctor"
 npm run doctor
 
 # ---------------------------------------------------------------- 5. launcher
+# Keep this launcher in sync with the one in connect-claude-mac.sh.
 STEP="creating the Desktop launcher"
 say "Adding a launcher to your Desktop"
 mkdir -p "$(dirname "$LAUNCHER")"
@@ -167,6 +168,11 @@ if curl -fs -o /dev/null "$APP_URL"; then
   echo "God's Eye View is already running. Opening it."
   open "$APP_URL"
   exit 0
+fi
+# Claude's in-chat globe copies your keys when it is built, so rebuild it after keys change.
+if [ -f dist/panel/index.html ] && [ -f .env ] && [ .env -nt dist/panel/index.html ]; then
+  echo "Updating the globe Claude shows, because your keys changed..."
+  npm run build:panel >/dev/null 2>&1 || echo "Could not update Claude's globe. The app itself still works."
 fi
 ( until curl -fs -o /dev/null "$APP_URL"; do sleep 1; done; open "$APP_URL" ) &
 exec npm run dev
